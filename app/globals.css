@@ -143,6 +143,17 @@ form,
   text-transform: uppercase;
 }
 
+.brand-link {
+  display: inline-flex;
+  transition: color 160ms ease, transform 160ms ease;
+}
+
+.brand-link:hover,
+.brand-link:focus-visible {
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
 .card {
   background: rgba(255, 253, 248, 0.92);
   border: 1px solid var(--line);
@@ -159,6 +170,67 @@ form,
 
 .hero {
   padding: 1.5rem;
+}
+
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
+  gap: 1.5rem;
+  padding: clamp(1.4rem, 3vw, 2.2rem);
+  overflow: hidden;
+}
+
+.home-copy {
+  display: grid;
+  gap: 1rem;
+  align-content: center;
+}
+
+.home-copy h1 {
+  margin: 0;
+  max-width: 14ch;
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: 0.95;
+}
+
+.home-intro {
+  max-width: 58ch;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.home-panel {
+  display: grid;
+  gap: 0.9rem;
+  align-content: start;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--line) 88%, white);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(246, 241, 231, 0.94)),
+    radial-gradient(circle at top right, rgba(14, 92, 81, 0.12), transparent 35%);
+}
+
+.home-metric {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(217, 207, 188, 0.8);
+}
+
+.home-metric-label {
+  color: var(--muted);
+  font: 700 0.78rem var(--font-ui);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .muted {
@@ -226,6 +298,27 @@ textarea {
   padding: 0.8rem 0.9rem;
   color: var(--ink);
   font: 0.96rem var(--font-body);
+}
+
+.password-input-wrap {
+  position: relative;
+}
+
+.password-input-wrap input {
+  padding-right: 5.75rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.45rem;
+  transform: translateY(-50%);
+  min-width: 4.4rem;
+  padding: 0.42rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: none;
+  font: 600 0.8rem var(--font-ui);
 }
 
 input:focus,
@@ -665,5 +758,9 @@ td {
 
   .row {
     align-items: stretch;
+  }
+
+  .home-hero {
+    grid-template-columns: 1fr;
   }
 }
