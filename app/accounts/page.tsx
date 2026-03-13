@@ -13,10 +13,10 @@ export default async function AccountsPage() {
   return (
     <AppShell user={user}>
       <AccountManagement
+        currentUserId={user.id}
         users={users.map((item) => ({
           id: item.id,
           username: item.email,
-          displayName: item.displayName,
           role: item.role,
           status: item.status
         }))}

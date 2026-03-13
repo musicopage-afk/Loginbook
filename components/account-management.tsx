@@ -7,14 +7,19 @@ import { getCsrfTokenFromDocument } from "@/lib/client-security";
 type ManagedUser = {
   id: string;
   username: string;
-  displayName: string;
   role: string;
   status: string;
 };
 
 const roleOptions = ["READER", "CONTRIBUTOR", "EDITOR", "APPROVER", "AUDITOR", "ADMIN"] as const;
 
-export function AccountManagement({ users }: { users: ManagedUser[] }) {
+export function AccountManagement({
+  users,
+  currentUserId
+}: {
+  users: ManagedUser[];
+  currentUserId: string;
+}) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,7 +36,6 @@ export function AccountManagement({ users }: { users: ManagedUser[] }) {
       },
       body: JSON.stringify({
         username: formData.get("username"),
-        displayName: formData.get("displayName"),
         password: formData.get("password"),
         role: formData.get("role")
       })
@@ -84,10 +88,6 @@ export function AccountManagement({ users }: { users: ManagedUser[] }) {
             <input name="username" required maxLength={60} />
           </label>
           <label>
-            Display name
-            <input name="displayName" required maxLength={120} />
-          </label>
-          <label>
             Password
             <input name="password" type="password" required minLength={8} />
           </label>
@@ -111,17 +111,20 @@ export function AccountManagement({ users }: { users: ManagedUser[] }) {
           {users.map((user) => (
             <div key={user.id} className="account-row">
               <div className="account-copy">
-                <strong>{user.displayName}</strong>
-                <span className="muted">@{user.username}</span>
+                <strong>{user.username}</strong>
                 <span className="muted">{user.role} / {user.status}</span>
               </div>
-              <button
-                type="button"
-                className={user.status === "ACTIVE" ? "button action-delete" : "button action-view"}
-                onClick={() => void toggleStatus(user.id, user.status === "ACTIVE" ? "DISABLED" : "ACTIVE")}
-              >
-                {user.status === "ACTIVE" ? "Disable" : "Enable"}
-              </button>
+              {user.id === currentUserId ? (
+                <span className="muted">Current account</span>
+              ) : (
+                <button
+                  type="button"
+                  className={user.status === "ACTIVE" ? "button action-delete" : "button action-view"}
+                  onClick={() => void toggleStatus(user.id, user.status === "ACTIVE" ? "DISABLED" : "ACTIVE")}
+                >
+                  {user.status === "ACTIVE" ? "Disable" : "Enable"}
+                </button>
+              )}
             </div>
           ))}
         </div>

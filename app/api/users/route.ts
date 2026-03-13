@@ -13,7 +13,6 @@ export async function GET() {
       users: users.map((item) => ({
         id: item.id,
         username: item.email,
-        displayName: item.displayName,
         role: item.role,
         status: item.status
       }))
@@ -39,7 +38,6 @@ export async function POST(request: NextRequest) {
       },
       {
         username: body.username,
-        displayName: body.displayName,
         password: body.password,
         role: body.role
       }
@@ -50,7 +48,6 @@ export async function POST(request: NextRequest) {
         user: {
           id: created.id,
           username: created.email,
-          displayName: created.displayName,
           role: created.role,
           status: created.status
         }

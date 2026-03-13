@@ -1,4 +1,3 @@
-import fs from "node:fs/promises";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { resetE2EData, type E2EFixture } from "./reset";
 
@@ -15,15 +14,6 @@ async function login(page: Page, fixture: E2EFixture) {
   await page.getByLabel("Password").fill(fixture.adminPassword);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/logbooks\/[^/]+$/);
-}
-
-async function readDownload(download: Awaited<ReturnType<Page["waitForEvent"]>>) {
-  const filePath = await download.path();
-  if (!filePath) {
-    throw new Error("Download path was not available");
-  }
-
-  return fs.readFile(filePath, "utf8");
 }
 
 let fixture: E2EFixture;
@@ -64,16 +54,22 @@ test("supports the core admin workflow end to end", async ({ page }, testInfo) =
   await expect(page.getByText(fixture.seededEntryName)).toBeVisible();
   await capture(page, testInfo, "logbook-overview");
 
-  const [existingLogbookCsv] = await Promise.all([
-    page.waitForEvent("download"),
-    page.getByRole("link", { name: "Export CSV" }).click()
-  ]);
-  const existingLogbookCsvText = await readDownload(existingLogbookCsv);
-  expect(existingLogbookCsv.suggestedFilename()).toContain("logbook-");
-  expect(existingLogbookCsvText).toContain(fixture.seededEntryName);
+  await expect(page.locator('a[href*="/api/export/logbooks/"]')).toHaveCount(0);
+
+  await page.locator(".topbar").getByRole("link", { name: "Accounts" }).click();
+  await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
+  await expect(page.getByText("Current account")).toBeVisible();
+  await capture(page, testInfo, "accounts-page");
+
+  await page.locator(".topbar").getByRole("link", { name: "Audit" }).click();
+  await expect(page.getByRole("heading", { name: "Audit events" })).toBeVisible();
+  await capture(page, testInfo, "audit-page");
+
+  await page.locator(".topbar").getByRole("link", { name: "Log Book" }).click();
 
   await page.getByRole("link", { name: "Create log" }).click();
   await expect(page.getByRole("heading", { name: "Create log" })).toBeVisible();
+  await capture(page, testInfo, "create-log-page");
 
   await page.getByLabel("Name").fill(createdEntryTitle);
   await page.getByRole("button", { name: /Entry or Exit/i }).click();
@@ -101,6 +97,7 @@ test("supports the core admin workflow end to end", async ({ page }, testInfo) =
 
   await createdLogRow.getByRole("link", { name: "Edit" }).click();
   await expect(page.getByRole("heading", { name: "Edit log" })).toBeVisible();
+  await capture(page, testInfo, "edit-log-page");
   await page.getByLabel("Reason").fill(updatedEntryBody);
   await Promise.all([
     page.waitForResponse((response) => response.url().includes("/api/entries/") && response.ok()),

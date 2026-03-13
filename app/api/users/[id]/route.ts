@@ -30,7 +30,6 @@ export async function PATCH(
       user: {
         id: updated.id,
         username: updated.email,
-        displayName: updated.displayName,
         role: updated.role,
         status: updated.status
       }

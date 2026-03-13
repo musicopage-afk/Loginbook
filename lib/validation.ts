@@ -31,7 +31,6 @@ export const createEntrySchema = z.object({
 
 export const createUserSchema = z.object({
   username: z.string().min(3).max(60),
-  displayName: z.string().min(2).max(120),
   password: z.string().min(8, "Password must be 8 characters or longer").max(256),
   role: z.enum(["READER", "CONTRIBUTOR", "EDITOR", "APPROVER", "AUDITOR", "ADMIN"])
 });

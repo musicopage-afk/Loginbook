@@ -21,7 +21,7 @@ export async function listUsers(organizationId: string) {
     },
     orderBy: [
       { status: "asc" },
-      { displayName: "asc" }
+      { email: "asc" }
     ]
   });
 }
@@ -30,7 +30,6 @@ export async function createUser(
   context: UserMutationContext,
   input: {
     username: string;
-    displayName: string;
     password: string;
     role: UserRole;
   }
@@ -56,7 +55,7 @@ export async function createUser(
     data: {
       organizationId: context.organizationId,
       email: username,
-      displayName: input.displayName.trim(),
+      displayName: `${input.role} User`,
       passwordHash,
       role: input.role,
       status: UserStatus.ACTIVE
@@ -86,8 +85,8 @@ export async function updateUserStatus(
     throw new ApiError(403, "Only administrators can manage accounts");
   }
 
-  if (context.userId === targetUserId && status === UserStatus.DISABLED) {
-    throw new ApiError(409, "You cannot disable your own account");
+  if (context.userId === targetUserId) {
+    throw new ApiError(409, "You cannot manage your own account");
   }
 
   const existing = await prisma.user.findFirst({

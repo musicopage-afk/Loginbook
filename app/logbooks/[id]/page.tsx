@@ -87,9 +87,6 @@ export default async function LogbookDetailPage({
           <Link className="button primary" href={`/logbooks/${logbook.id}/entries/new`}>
             Create log
           </Link>
-          <a className="button" href={`/api/export/logbooks/${logbook.id}`}>
-            Export CSV
-          </a>
         </div>
       </section>
       <section className="card">
