@@ -104,8 +104,9 @@ export default async function HomePage() {
                 <span className="home-auth-tab is-active">Login</span>
                 <span className="home-auth-tab">Workspace</span>
               </div>
-              <div className="home-auth-provider">Open the internal company workspace</div>
-              <div className="home-auth-divider">Access with your account</div>
+              <div className="home-auth-preview-pill">Preview only</div>
+              <div className="home-auth-provider">Sample sign-in layout for the internal workspace</div>
+              <div className="home-auth-divider">Visual preview only</div>
               <div className="home-auth-field">
                 <label>Username</label>
                 <div className="home-auth-input">{user ? "admin" : "your-company-user"}</div>
@@ -114,9 +115,10 @@ export default async function HomePage() {
                 <label>Password</label>
                 <div className="home-auth-input">Secure password entry</div>
               </div>
-              <Link className="button primary home-auth-button" href={primaryActionHref}>
-                {primaryActionLabel}
-              </Link>
+              <div className="home-auth-button" aria-hidden="true">
+                Preview login button
+              </div>
+              <p className="home-auth-note muted">Use the real navigation to sign in. This card is a visual homepage preview.</p>
               <div className="home-auth-footer">
                 <div className="home-meta-card">
                   <span className="home-metric-label">Workspace</span>
@@ -164,11 +166,15 @@ export default async function HomePage() {
               <div className="home-demo-brand">
                 <BrandLogo compact />
               </div>
+              <div className="home-demo-preview-pill">Static preview</div>
               <div className="home-demo-nav-item is-active">Log Book</div>
               <div className="home-demo-nav-item">In Building</div>
               <div className="home-demo-nav-item">Accounts</div>
             </div>
             <div className="home-demo-main">
+              <div className="home-demo-preview-banner">
+                Homepage mockup only. Buttons and panels in this section are non-functional.
+              </div>
               <div className="home-demo-banner">
                 <div>
                   <strong>No unresolved desk-side actions</strong>
