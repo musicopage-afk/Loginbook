@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { MouseEvent, useEffect, useRef, useState } from "react";
 
 type NavItem = {
   href: string;
@@ -32,9 +32,21 @@ export function ShellSidebar({
   items: NavItem[];
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [transitionStage, setTransitionStage] = useState<"idle" | "out" | "in">("idle");
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
   const isFirstRender = useRef(true);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -43,7 +55,31 @@ export function ShellSidebar({
     }
 
     setOpen(false);
-  }, [pathname]);
+    if (!pendingHref) {
+      return;
+    }
+
+    setTransitionStage("in");
+    timeoutRef.current = setTimeout(() => {
+      setTransitionStage("idle");
+      setPendingHref(null);
+    }, 100);
+  }, [pathname, pendingHref]);
+
+  function handleNavigate(event: MouseEvent<HTMLAnchorElement>, href: string) {
+    if (href === pathname || pendingHref) {
+      setOpen(false);
+      return;
+    }
+
+    event.preventDefault();
+    setOpen(false);
+    setPendingHref(href);
+    setTransitionStage("out");
+    timeoutRef.current = setTimeout(() => {
+      router.push(href);
+    }, 100);
+  }
 
   return (
     <div className={`shell-layout ${open ? "is-sidebar-open" : "is-sidebar-closed"}`}>
@@ -59,7 +95,7 @@ export function ShellSidebar({
         </div>
         <nav className="shell-sidebar-nav">
           {items.map((item) => (
-            <Link key={item.href} className="shell-sidebar-link" href={item.href} onClick={() => setOpen(false)}>
+            <Link key={item.href} className="shell-sidebar-link" href={item.href} onClick={(event) => handleNavigate(event, item.href)}>
               {item.label}
             </Link>
           ))}
@@ -71,7 +107,7 @@ export function ShellSidebar({
             <MenuIcon />
           </button>
         ) : null}
-        <div className={`shell-content ${open ? "is-blurred" : ""}`}>{children}</div>
+        <div className={`shell-content ${open ? "is-blurred" : ""} is-transition-${transitionStage}`}>{children}</div>
       </div>
     </div>
   );
