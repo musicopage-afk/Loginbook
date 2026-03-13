@@ -4,6 +4,10 @@
 coverage
 node_modules
 uploads
+playwright-report
+test-results
+tests
+tsconfig.tsbuildinfo
 *.log
 .env
 .env.local
