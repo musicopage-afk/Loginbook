@@ -215,7 +215,7 @@ form,
 }
 
 .shell-content {
-  transition: filter 200ms ease, opacity 200ms ease, transform 200ms ease;
+  transition: filter 250ms ease, opacity 250ms ease, transform 250ms ease;
 }
 
 .shell-content.is-blurred {

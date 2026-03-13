@@ -9,6 +9,8 @@ type NavItem = {
   label: string;
 };
 
+const NAV_TRANSITION_MS = 250;
+
 function HomeIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
@@ -74,7 +76,7 @@ export function ShellSidebar({
     timeoutRef.current = setTimeout(() => {
       setTransitionStage("idle");
       setPendingHref(null);
-    }, 100);
+    }, NAV_TRANSITION_MS);
   }, [pathname, pendingHref]);
 
   function handleNavigate(event: MouseEvent<HTMLAnchorElement>, href: string) {
@@ -89,7 +91,7 @@ export function ShellSidebar({
     setTransitionStage("out");
     timeoutRef.current = setTimeout(() => {
       router.push(href);
-    }, 100);
+    }, NAV_TRANSITION_MS);
   }
 
   return (
