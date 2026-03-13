@@ -1,22 +1,33 @@
-function required(name: string) {
-  const value = process.env[name];
+import crypto from "node:crypto";
 
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
+const runtimeSecrets = new Map<string, string>();
+
+function runtimeSecret(name: string) {
+  const configured = process.env[name];
+  if (configured) {
+    return configured;
   }
 
-  return value;
+  const existing = runtimeSecrets.get(name);
+  if (existing) {
+    return existing;
+  }
+
+  const generated = crypto.randomBytes(32).toString("hex");
+  runtimeSecrets.set(name, generated);
+  console.warn(`${name} is not set; generated an ephemeral runtime secret. Configure a stable value for production.`);
+  return generated;
 }
 
 export const env = {
   get appUrl() {
-    return required("APP_URL");
+    return process.env.APP_URL ?? "";
   },
   get sessionSecret() {
-    return required("SESSION_SECRET");
+    return runtimeSecret("SESSION_SECRET");
   },
   get csrfSecret() {
-    return required("CSRF_SECRET");
+    return runtimeSecret("CSRF_SECRET");
   },
   oidc: {
     get issuer() {

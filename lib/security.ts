@@ -75,7 +75,11 @@ export function validateOrigin(request: Request | NextRequest) {
     return false;
   }
 
-  return origin === env.appUrl;
+  if (env.appUrl) {
+    return origin === env.appUrl;
+  }
+
+  return origin === new URL(request.url).origin;
 }
 
 export function getClientIp(request: Request | NextRequest) {
