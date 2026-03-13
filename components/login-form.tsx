@@ -8,12 +8,14 @@ export function LoginForm() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   const resetFields = useCallback(() => {
     setUsername("");
     setPassword("");
+    setShowPassword(false);
     setError("");
     setLoading(false);
   }, []);
@@ -101,14 +103,25 @@ export function LoginForm() {
       </label>
       <label>
         Password
-        <input
-          type="password"
-          name="password"
-          autoComplete="new-password"
-          required
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
+        <div className="password-input-wrap">
+          <input
+            type={showPassword ? "text" : "password"}
+            name="password"
+            autoComplete="new-password"
+            required
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+          <button
+            type="button"
+            className="password-toggle"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((current) => !current)}
+          >
+            {showPassword ? "Hide" : "Show"}
+          </button>
+        </div>
       </label>
       {error ? <div className="danger">{error}</div> : null}
       <button className="primary" type="submit" disabled={loading}>

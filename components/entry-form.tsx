@@ -123,7 +123,7 @@ export function EntryForm({
   }
 
   return (
-    <form onSubmit={onSubmit}>
+    <form className="entry-form" onSubmit={onSubmit}>
       <label>
         Name
         <input

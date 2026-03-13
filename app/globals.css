@@ -248,6 +248,10 @@ form,
   font: 600 0.82rem var(--font-ui);
 }
 
+.topbar-user-pill {
+  margin-top: 0.55rem;
+}
+
 .button,
 button {
   border: 1px solid var(--line);
@@ -321,6 +325,13 @@ textarea {
   font: 600 0.8rem var(--font-ui);
 }
 
+.entry-form input,
+.entry-form textarea {
+  font-family: var(--font-timestamp);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+
 input:focus,
 textarea:focus,
 .select-trigger:focus-visible,
@@ -376,7 +387,7 @@ textarea {
 
 .select-value.is-selected {
   font-family: var(--font-timestamp);
-  font-size: 1.15rem;
+  font-size: 1rem;
   letter-spacing: 0.08em;
   text-transform: none;
   color: var(--ink);
@@ -515,6 +526,20 @@ td {
 
 .topbar-button {
   box-shadow: var(--shadow);
+}
+
+.logout-button {
+  border-color: #9e3420;
+  background: #b84026;
+  color: #fff;
+  box-shadow: 0 16px 32px rgba(184, 64, 38, 0.28);
+}
+
+.logout-button:hover,
+.logout-button:focus-visible {
+  border-color: #8b2f1c;
+  background: #9e3420;
+  color: #fff;
 }
 
 .log-filter-bar {

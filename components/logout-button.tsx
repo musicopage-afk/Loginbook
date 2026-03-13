@@ -17,5 +17,9 @@ export function LogoutButton() {
     router.refresh();
   }
 
-  return <button onClick={logout}>Logout</button>;
+  return (
+    <button className="logout-button" onClick={logout}>
+      Logout
+    </button>
+  );
 }

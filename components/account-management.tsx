@@ -23,12 +23,15 @@ export function AccountManagement({
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [createUsername, setCreateUsername] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+  const [createRole, setCreateRole] = useState<(typeof roleOptions)[number]>("CONTRIBUTOR");
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editingUsername, setEditingUsername] = useState("");
   const [editingPassword, setEditingPassword] = useState("");
   const [editingRole, setEditingRole] = useState<(typeof roleOptions)[number]>("CONTRIBUTOR");
 
-  async function onCreate(formData: FormData) {
+  async function onCreate() {
     setError("");
     setLoading(true);
 
@@ -39,9 +42,9 @@ export function AccountManagement({
         "x-csrf-token": getCsrfTokenFromDocument()
       },
       body: JSON.stringify({
-        username: formData.get("username"),
-        password: formData.get("password"),
-        role: formData.get("role")
+        username: createUsername,
+        password: createPassword,
+        role: createRole
       })
     });
 
@@ -52,6 +55,10 @@ export function AccountManagement({
       return;
     }
 
+    setCreateUsername("");
+    setCreatePassword("");
+    setCreateRole("CONTRIBUTOR");
+    setLoading(false);
     router.refresh();
   }
 
@@ -116,22 +123,39 @@ export function AccountManagement({
       <section className="card">
         <h1>Accounts</h1>
         <form
+          autoComplete="off"
           onSubmit={(event) => {
             event.preventDefault();
-            void onCreate(new FormData(event.currentTarget));
+            void onCreate();
           }}
         >
           <label>
             Username
-            <input name="username" required maxLength={60} />
+            <input
+              name="username"
+              required
+              maxLength={60}
+              autoComplete="off"
+              spellCheck={false}
+              value={createUsername}
+              onChange={(event) => setCreateUsername(event.target.value)}
+            />
           </label>
           <label>
             Password
-            <input name="password" type="password" required minLength={8} />
+            <input
+              name="password"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              value={createPassword}
+              onChange={(event) => setCreatePassword(event.target.value)}
+            />
           </label>
           <label>
             Role
-            <select name="role" defaultValue="CONTRIBUTOR">
+            <select name="role" value={createRole} onChange={(event) => setCreateRole(event.target.value as (typeof roleOptions)[number])}>
               {roleOptions.map((role) => (
                 <option key={role} value={role}>{role}</option>
               ))}
