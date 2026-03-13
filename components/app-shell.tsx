@@ -20,25 +20,28 @@ export function AppShell({
     ...(user && canViewAudit(user.role) ? [{ href: "/audit", label: "Audit" }] : []),
     ...(user && canManageAccounts(user.role) ? [{ href: "/accounts", label: "Accounts" }] : [])
   ];
+  const shellBody = (
+    <>
+      <div className="topbar">
+        <div>
+          <Link className="brand brand-link" href="/">
+            <BrandLogo />
+          </Link>
+          <div className="muted">Digital logbook with audit-grade history</div>
+          {roleLabel ? <div className="topbar-user-pill"><span className="pill">{roleLabel}</span></div> : null}
+        </div>
+        <div className="topbar-actions">
+          {user ? <LogoutButton /> : <Link className="button topbar-button" href="/login">Login</Link>}
+        </div>
+      </div>
+      <Breadcrumbs />
+      {children}
+    </>
+  );
 
   return (
     <main className="shell">
-      <ShellSidebar items={navItems}>
-        <div className="topbar">
-          <div>
-            <Link className="brand brand-link" href="/">
-              <BrandLogo />
-            </Link>
-            <div className="muted">Digital logbook with audit-grade history</div>
-            {roleLabel ? <div className="topbar-user-pill"><span className="pill">{roleLabel}</span></div> : null}
-          </div>
-          <div className="topbar-actions">
-            {user ? <LogoutButton /> : <Link className="button topbar-button" href="/login">Login</Link>}
-          </div>
-        </div>
-        <Breadcrumbs />
-        {children}
-      </ShellSidebar>
+      {user ? <ShellSidebar items={navItems}>{shellBody}</ShellSidebar> : shellBody}
     </main>
   );
 }
