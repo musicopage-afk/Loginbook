@@ -53,6 +53,7 @@ Change these immediately outside local development.
 
 ## Environment Variables
 - `DATABASE_URL`: PostgreSQL connection string.
+- `DATABASE_PRIVATE_URL`, `POSTGRES_URL`, `POSTGRES_PRISMA_URL`, `POSTGRESQL_URL`: accepted startup fallbacks for hosted platforms when `DATABASE_URL` is not provided directly. The container entrypoint maps the first available value to `DATABASE_URL`.
 - `APP_URL`: External application origin. Used for origin validation.
 - `SESSION_SECRET`: Secret used for session token signing inputs.
 - `CSRF_SECRET`: Secret used for signed CSRF token generation.
