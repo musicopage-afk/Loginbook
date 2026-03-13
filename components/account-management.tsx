@@ -30,6 +30,8 @@ export function AccountManagement({
   const [editingUsername, setEditingUsername] = useState("");
   const [editingPassword, setEditingPassword] = useState("");
   const [editingRole, setEditingRole] = useState<(typeof roleOptions)[number]>("CONTRIBUTOR");
+  const [deleteTarget, setDeleteTarget] = useState<ManagedUser | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function onCreate() {
     setError("");
@@ -118,6 +120,32 @@ export function AccountManagement({
     router.refresh();
   }
 
+  async function confirmDelete() {
+    if (!deleteTarget) {
+      return;
+    }
+
+    setError("");
+    setDeleting(true);
+    const response = await fetch(`/api/users/${deleteTarget.id}`, {
+      method: "DELETE",
+      headers: {
+        "x-csrf-token": getCsrfTokenFromDocument()
+      }
+    });
+
+    const payload = (await response.json()) as { error?: string };
+    if (!response.ok) {
+      setError(payload.error ?? "Could not delete account");
+      setDeleting(false);
+      return;
+    }
+
+    setDeleteTarget(null);
+    setDeleting(false);
+    router.refresh();
+  }
+
   return (
     <div className="grid two">
       <section className="card">
@@ -201,40 +229,62 @@ export function AccountManagement({
                   <>
                     <strong>{user.username}</strong>
                     <span className="muted">{user.role} / {user.status}</span>
+                    {user.id === currentUserId ? <span className="muted">Current account</span> : null}
                   </>
                 )}
               </div>
-              {user.id === currentUserId ? (
-                <span className="muted">Current account</span>
-              ) : (
-                <div className="entry-actions">
-                  {editingUserId === user.id ? (
-                    <>
-                      <button type="button" className="button action-view" onClick={() => void saveEdit(user.id)}>
-                        Save
-                      </button>
-                      <button type="button" className="button" onClick={() => setEditingUserId(null)}>
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <button type="button" className="button action-edit" onClick={() => startEdit(user)}>
-                      Edit
+              <div className="entry-actions">
+                {editingUserId === user.id ? (
+                  <>
+                    <button type="button" className="button action-view" onClick={() => void saveEdit(user.id)}>
+                      Save
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    className={user.status === "ACTIVE" ? "button action-delete" : "button action-view"}
-                    onClick={() => void toggleStatus(user.id, user.status === "ACTIVE" ? "DISABLED" : "ACTIVE")}
-                  >
-                    {user.status === "ACTIVE" ? "Disable" : "Enable"}
+                    <button type="button" className="button" onClick={() => setEditingUserId(null)}>
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className="button action-edit" onClick={() => startEdit(user)}>
+                    Edit
                   </button>
-                </div>
-              )}
+                )}
+                {user.id !== currentUserId ? (
+                  <>
+                    <button
+                      type="button"
+                      className={user.status === "ACTIVE" ? "button action-delete" : "button action-view"}
+                      onClick={() => void toggleStatus(user.id, user.status === "ACTIVE" ? "DISABLED" : "ACTIVE")}
+                    >
+                      {user.status === "ACTIVE" ? "Disable" : "Enable"}
+                    </button>
+                    <button type="button" className="button action-delete" onClick={() => setDeleteTarget(user)}>
+                      Delete
+                    </button>
+                  </>
+                ) : null}
+              </div>
             </div>
           ))}
         </div>
       </section>
+      {deleteTarget ? (
+        <div className="modal-backdrop">
+          <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby={`delete-account-${deleteTarget.id}`}>
+            <h2 id={`delete-account-${deleteTarget.id}`}>Delete account?</h2>
+            <p className="muted">
+              This will permanently remove &quot;{deleteTarget.username}&quot; if it is not linked to any log history.
+            </p>
+            <div className="modal-actions">
+              <button className="button ghost-button" type="button" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+                Cancel
+              </button>
+              <button className="button modal-delete-button" type="button" onClick={() => void confirmDelete()} disabled={deleting}>
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -11,7 +11,7 @@ async function capture(page: Page, testInfo: TestInfo, name: string) {
 async function login(page: Page, fixture: E2EFixture) {
   await page.goto("/login");
   await page.getByLabel("Username").fill(fixture.adminUsername);
-  await page.getByLabel("Password").fill(fixture.adminPassword);
+  await page.locator('input[name="password"]').fill(fixture.adminPassword);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/logbooks\/[^/]+$/);
 }
@@ -27,16 +27,24 @@ test.beforeEach(async ({ page, context }) => {
   });
 });
 
+test("shows the internal homepage clearly for signed-out users", async ({ page }, testInfo) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Clear records, smooth access, complete accountability." })).toBeVisible();
+  await expect(page.getByText("Internal operations workspace")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign In" })).toBeVisible();
+  await capture(page, testInfo, "home-page");
+});
+
 test("shows direct login errors for wrong password and unknown username", async ({ page }, testInfo) => {
   await page.goto("/login");
   await page.getByLabel("Username").fill(fixture.adminUsername);
-  await page.getByLabel("Password").fill("WrongPassword123!");
+  await page.locator('input[name="password"]').fill("WrongPassword123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByText("Invalid password")).toBeVisible();
   await capture(page, testInfo, "invalid-password");
 
   await page.getByLabel("Username").fill("missing-user");
-  await page.getByLabel("Password").fill(fixture.adminPassword);
+  await page.locator('input[name="password"]').fill(fixture.adminPassword);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByText("Username not found")).toBeVisible();
   await capture(page, testInfo, "unknown-username");
@@ -60,6 +68,11 @@ test("supports the core admin workflow end to end", async ({ page }, testInfo) =
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
   await expect(page.getByText("Current account")).toBeVisible();
   await capture(page, testInfo, "accounts-page");
+
+  await page.locator(".topbar").getByRole("link", { name: "In Building" }).click();
+  await expect(page.getByRole("heading", { name: "People currently in the building" })).toBeVisible();
+  await expect(page.getByText(fixture.seededEntryName)).toBeVisible();
+  await capture(page, testInfo, "in-building-page");
 
   await page.locator(".topbar").getByRole("link", { name: "Audit" }).click();
   await expect(page.getByRole("heading", { name: "Audit events" })).toBeVisible();

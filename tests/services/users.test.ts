@@ -5,11 +5,15 @@ const createAuditEvent = vi.fn();
 const hashPassword = vi.fn();
 
 const prisma = {
+  entry: {
+    findFirst: vi.fn()
+  },
   user: {
     findMany: vi.fn(),
     findFirst: vi.fn(),
     create: vi.fn(),
-    update: vi.fn()
+    update: vi.fn(),
+    delete: vi.fn()
   }
 };
 
@@ -31,9 +35,11 @@ describe("user services", () => {
     createAuditEvent.mockReset();
     hashPassword.mockReset();
     prisma.user.findMany.mockReset();
+    prisma.entry.findFirst.mockReset();
     prisma.user.findFirst.mockReset();
     prisma.user.create.mockReset();
     prisma.user.update.mockReset();
+    prisma.user.delete.mockReset();
   });
 
   it("creates an account without needing a display name", async () => {
@@ -71,7 +77,7 @@ describe("user services", () => {
     );
   });
 
-  it("blocks an administrator from managing their own account", async () => {
+  it("blocks an administrator from disabling their own account", async () => {
     const { updateUserStatus } = await import("@/lib/services/users");
 
     await expect(
@@ -85,6 +91,50 @@ describe("user services", () => {
         UserStatus.DISABLED
       )
     ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("allows an administrator to update their own credentials", async () => {
+    const { updateUserCredentials } = await import("@/lib/services/users");
+    hashPassword.mockResolvedValue("self-hash");
+    prisma.user.findFirst
+      .mockResolvedValueOnce({
+        id: "admin_1",
+        organizationId: "org_1",
+        email: "admin",
+        role: UserRole.ADMIN,
+        displayName: "ADMIN User"
+      })
+      .mockResolvedValueOnce(null);
+    prisma.user.update.mockResolvedValue({
+      id: "admin_1",
+      email: "chief-admin",
+      role: UserRole.ADMIN,
+      status: UserStatus.ACTIVE
+    });
+
+    const result = await updateUserCredentials(
+      {
+        organizationId: "org_1",
+        userId: "admin_1",
+        role: UserRole.ADMIN
+      },
+      "admin_1",
+      {
+        username: "chief-admin",
+        password: "NewPassword123!",
+        role: UserRole.ADMIN
+      }
+    );
+
+    expect(result.email).toBe("chief-admin");
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          email: "chief-admin",
+          passwordHash: "self-hash"
+        })
+      })
+    );
   });
 
   it("updates a managed account username and password", async () => {
@@ -130,5 +180,60 @@ describe("user services", () => {
         })
       })
     );
+  });
+
+  it("deletes an unreferenced managed account", async () => {
+    const { deleteUser } = await import("@/lib/services/users");
+    prisma.user.findFirst.mockResolvedValue({
+      id: "user_2",
+      organizationId: "org_1",
+      email: "guard-two",
+      role: UserRole.EDITOR,
+      displayName: "EDITOR User"
+    });
+    prisma.entry.findFirst.mockResolvedValue(null);
+    prisma.user.delete.mockResolvedValue({
+      id: "user_2",
+      email: "guard-two"
+    });
+
+    const result = await deleteUser(
+      {
+        organizationId: "org_1",
+        userId: "admin_1",
+        role: UserRole.ADMIN
+      },
+      "user_2"
+    );
+
+    expect(result.id).toBe("user_2");
+    expect(prisma.user.delete).toHaveBeenCalledWith({
+      where: {
+        id: "user_2"
+      }
+    });
+  });
+
+  it("blocks deletion when an account is referenced by log history", async () => {
+    const { deleteUser } = await import("@/lib/services/users");
+    prisma.user.findFirst.mockResolvedValue({
+      id: "user_2",
+      organizationId: "org_1",
+      email: "guard-two",
+      role: UserRole.EDITOR,
+      displayName: "EDITOR User"
+    });
+    prisma.entry.findFirst.mockResolvedValue({ id: "entry_1" });
+
+    await expect(
+      deleteUser(
+        {
+          organizationId: "org_1",
+          userId: "admin_1",
+          role: UserRole.ADMIN
+        },
+        "user_2"
+      )
+    ).rejects.toMatchObject({ status: 409 });
   });
 });

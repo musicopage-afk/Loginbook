@@ -25,6 +25,7 @@ export function AppShell({
         </div>
         <div className="nav">
           <Link className="button topbar-button" href="/logbooks">Log Book</Link>
+          {user ? <Link className="button topbar-button" href="/current-people">In Building</Link> : null}
           {user && canViewAudit(user.role) ? <Link className="button topbar-button" href="/audit">Audit</Link> : null}
           {user && canManageAccounts(user.role) ? <Link className="button topbar-button" href="/accounts">Accounts</Link> : null}
           {user ? <LogoutButton /> : <Link className="button topbar-button" href="/login">Login</Link>}

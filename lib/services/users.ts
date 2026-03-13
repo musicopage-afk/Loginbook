@@ -137,10 +137,6 @@ export async function updateUserCredentials(
     throw new ApiError(403, "Only administrators can manage accounts");
   }
 
-  if (context.userId === targetUserId) {
-    throw new ApiError(409, "You cannot manage your own account");
-  }
-
   const existing = await prisma.user.findFirst({
     where: {
       id: targetUserId,
@@ -192,4 +188,57 @@ export async function updateUserCredentials(
   });
 
   return updated;
+}
+
+export async function deleteUser(context: UserMutationContext, targetUserId: string) {
+  if (!canManageAccounts(context.role)) {
+    throw new ApiError(403, "Only administrators can manage accounts");
+  }
+
+  if (context.userId === targetUserId) {
+    throw new ApiError(409, "You cannot delete your own account");
+  }
+
+  const existing = await prisma.user.findFirst({
+    where: {
+      id: targetUserId,
+      organizationId: context.organizationId
+    }
+  });
+
+  if (!existing) {
+    throw new ApiError(404, "Account not found");
+  }
+
+  const referencedEntry = await prisma.entry.findFirst({
+    where: {
+      OR: [{ createdByUserId: targetUserId }, { approvedByUserId: targetUserId }]
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (referencedEntry) {
+    throw new ApiError(409, "This account cannot be deleted because it is referenced by existing log records");
+  }
+
+  const deleted = await prisma.user.delete({
+    where: {
+      id: targetUserId
+    }
+  });
+
+  await createAuditEvent({
+    organizationId: context.organizationId,
+    userId: context.userId,
+    action: AuditAction.DELETE,
+    entityType: EntityType.USER,
+    entityId: deleted.id,
+    beforeJson: sanitizeObject(existing),
+    ip: context.ip,
+    userAgent: context.userAgent
+  });
+
+  return deleted;
 }

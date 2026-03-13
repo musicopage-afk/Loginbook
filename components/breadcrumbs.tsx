@@ -39,6 +39,13 @@ function getBreadcrumbs(pathname: string): Crumb[] {
     ];
   }
 
+  if (pathname === "/current-people") {
+    return [
+      { href: "/", label: "Home" },
+      { label: "In Building", current: true }
+    ];
+  }
+
   if (pathname === "/accounts") {
     return [
       { href: "/", label: "Home" },

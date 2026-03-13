@@ -1,7 +1,7 @@
 import { UserStatus, UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { enforceStateChangingRequest, getRequestMeta, jsonError, jsonOk, requireApiUser } from "@/lib/api";
-import { updateUserCredentials, updateUserStatus } from "@/lib/services/users";
+import { deleteUser, updateUserCredentials, updateUserStatus } from "@/lib/services/users";
 import { updateUserCredentialsSchema, updateUserStatusSchema } from "@/lib/validation";
 
 export async function PATCH(
@@ -71,6 +71,37 @@ export async function PUT(
         username: updated.email,
         role: updated.role,
         status: updated.status
+      }
+    });
+  } catch (error) {
+    return jsonError(error);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await requireApiUser(UserRole.ADMIN);
+    await enforceStateChangingRequest(request);
+    const { id } = await params;
+    const meta = getRequestMeta(request);
+    const deleted = await deleteUser(
+      {
+        organizationId: user.organizationId,
+        userId: user.id,
+        role: user.role,
+        ip: meta.ip,
+        userAgent: meta.userAgent
+      },
+      id
+    );
+
+    return jsonOk({
+      user: {
+        id: deleted.id,
+        username: deleted.email
       }
     });
   } catch (error) {
