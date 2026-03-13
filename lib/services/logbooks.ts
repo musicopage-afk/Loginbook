@@ -2,19 +2,32 @@ import { AuditAction, EntityType, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createAuditEvent } from "@/lib/audit";
 import { ApiError } from "@/lib/api";
+import { DEFAULT_LOGBOOK_NAME, DEFAULT_LOGBOOK_TYPE } from "@/lib/constants";
 import { canCreateLogbook } from "@/lib/rbac";
 import { sanitizeObject } from "@/lib/sanitize";
 
 export async function listLogbooks(organizationId: string) {
-  return prisma.logbook.findMany({
+  const logbook = await prisma.logbook.findFirst({
     where: {
       organizationId,
-      deletedAt: null
-    },
-    orderBy: {
-      createdAt: "desc"
+      deletedAt: null,
+      name: DEFAULT_LOGBOOK_NAME
     }
   });
+
+  if (logbook) {
+    return [logbook];
+  }
+
+  const created = await prisma.logbook.create({
+    data: {
+      organizationId,
+      name: DEFAULT_LOGBOOK_NAME,
+      type: DEFAULT_LOGBOOK_TYPE
+    }
+  });
+
+  return [created];
 }
 
 export async function createLogbook(input: {

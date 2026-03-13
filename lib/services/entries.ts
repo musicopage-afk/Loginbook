@@ -5,7 +5,7 @@ import { ApiError } from "@/lib/api";
 import { canApproveEntry, canCreateEntry, canEditEntry } from "@/lib/rbac";
 import { sanitizeObject } from "@/lib/sanitize";
 import { getStorageAdapter } from "@/lib/storage";
-import { MAX_UPLOAD_BYTES } from "@/lib/constants";
+import { ACTIVE_LOG_TAG, INACTIVE_LOG_TAG, MAX_UPLOAD_BYTES, PAST_LOG_TAG } from "@/lib/constants";
 
 type EntryMutationContext = {
   organizationId: string;
@@ -44,6 +44,82 @@ async function ensureTags(organizationId: string, names: string[], tx: Prisma.Tr
   });
 }
 
+function getLifecycleTagNames(direction: unknown) {
+  if (direction === "EXIT") {
+    return [PAST_LOG_TAG];
+  }
+
+  return [ACTIVE_LOG_TAG];
+}
+
+function getEntryDirection(structuredFieldsJson: Record<string, unknown>) {
+  return structuredFieldsJson.entryOrExit === "EXIT" ? "EXIT" : "ENTRY";
+}
+
+function withLifecycleTags(tags: string[], structuredFieldsJson: Record<string, unknown>) {
+  const lifecycleTags = new Set([ACTIVE_LOG_TAG, PAST_LOG_TAG, INACTIVE_LOG_TAG]);
+  const normalized = tags
+    .map((tag) => tag.trim().toLowerCase())
+    .filter(Boolean)
+    .filter((tag) => !lifecycleTags.has(tag));
+
+  return [...new Set([...normalized, ...getLifecycleTagNames(getEntryDirection(structuredFieldsJson))])];
+}
+
+async function markMatchingActiveLogsInactive(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  logbookId: string,
+  title: string,
+  excludingEntryId: string
+) {
+  const lifecycleTags = await ensureTags(organizationId, [ACTIVE_LOG_TAG, INACTIVE_LOG_TAG], tx);
+  const activeTag = lifecycleTags.find((tag) => tag.name === ACTIVE_LOG_TAG);
+  const inactiveTag = lifecycleTags.find((tag) => tag.name === INACTIVE_LOG_TAG);
+
+  if (!activeTag || !inactiveTag) {
+    return;
+  }
+
+  const matchingEntries = await tx.entry.findMany({
+    where: {
+      id: {
+        not: excludingEntryId
+      },
+      logbookId,
+      deletedAt: null,
+      title,
+      tags: {
+        some: {
+          tagId: activeTag.id
+        }
+      }
+    },
+    select: {
+      id: true
+    }
+  });
+
+  for (const item of matchingEntries) {
+    await tx.entryTag.deleteMany({
+      where: {
+        entryId: item.id,
+        tagId: activeTag.id
+      }
+    });
+
+    await tx.entryTag.createMany({
+      data: [
+        {
+          entryId: item.id,
+          tagId: inactiveTag.id
+        }
+      ],
+      skipDuplicates: true
+    });
+  }
+}
+
 export async function listEntries(where: Prisma.EntryWhereInput) {
   return prisma.entry.findMany({
     where,
@@ -58,9 +134,43 @@ export async function listEntries(where: Prisma.EntryWhereInput) {
       attachments: true
     },
     orderBy: {
-      occurredAt: "desc"
+      createdAt: "desc"
     }
   });
+}
+
+export async function listActiveEntryNames(organizationId: string, logbookId: string, excludeEntryId?: string) {
+  const entries = await prisma.entry.findMany({
+    where: {
+      logbookId,
+      deletedAt: null,
+      ...(excludeEntryId
+        ? {
+            id: {
+              not: excludeEntryId
+            }
+          }
+        : {}),
+      logbook: {
+        organizationId
+      },
+      tags: {
+        some: {
+          tag: {
+            name: ACTIVE_LOG_TAG
+          }
+        }
+      }
+    },
+    select: {
+      title: true
+    },
+    orderBy: {
+      createdAt: "desc"
+    }
+  });
+
+  return [...new Set(entries.map((entry) => entry.title).filter(Boolean))];
 }
 
 export async function getEntry(entryId: string, organizationId: string) {
@@ -134,6 +244,7 @@ export async function createEntry(
       });
     }
 
+    const normalizedTags = withLifecycleTags(input.tags, input.structuredFieldsJson);
     const entry = await tx.entry.create({
       data: {
         logbookId: input.logbookId,
@@ -147,7 +258,7 @@ export async function createEntry(
       }
     });
 
-    const tags = await ensureTags(context.organizationId, input.tags, tx);
+    const tags = await ensureTags(context.organizationId, normalizedTags, tx);
     if (tags.length > 0) {
       await tx.entryTag.createMany({
         data: tags.map((tag) => ({
@@ -156,6 +267,10 @@ export async function createEntry(
         })),
         skipDuplicates: true
       });
+    }
+
+    if (getEntryDirection(input.structuredFieldsJson) === "EXIT") {
+      await markMatchingActiveLogsInactive(tx, context.organizationId, input.logbookId, input.title, entry.id);
     }
 
     const files = input.files ?? [];
@@ -237,6 +352,7 @@ export async function updateEntry(
       throw new ApiError(409, "Approved entries are locked. Create a superseding entry instead.");
     }
 
+    const normalizedTags = withLifecycleTags(input.tags, input.structuredFieldsJson);
     const updated = await tx.entry.update({
       where: { id: entryId },
       data: {
@@ -253,7 +369,7 @@ export async function updateEntry(
       }
     });
 
-    const tags = await ensureTags(context.organizationId, input.tags, tx);
+    const tags = await ensureTags(context.organizationId, normalizedTags, tx);
     if (tags.length > 0) {
       await tx.entryTag.createMany({
         data: tags.map((tag) => ({
@@ -261,6 +377,10 @@ export async function updateEntry(
           tagId: tag.id
         }))
       });
+    }
+
+    if (getEntryDirection(input.structuredFieldsJson) === "EXIT") {
+      await markMatchingActiveLogsInactive(tx, context.organizationId, existing.logbook.id, input.title, entryId);
     }
 
     await createAuditEvent({

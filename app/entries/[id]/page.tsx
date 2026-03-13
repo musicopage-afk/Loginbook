@@ -3,9 +3,9 @@ import { UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
 import { ApprovalPanel } from "@/components/approval-panel";
 import { EntryForm } from "@/components/entry-form";
+import { getLogFields } from "@/lib/entry-presentation";
 import { requirePageUser } from "@/lib/server-auth";
 import { getEntry } from "@/lib/services/entries";
-import { prisma } from "@/lib/prisma";
 import { canApproveEntry, canCreateEntry } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
@@ -22,54 +22,47 @@ export default async function EntryDetailPage({
   if (!entry) {
     return (
       <AppShell user={user}>
-        <div className="card">Entry not found.</div>
+        <div className="card">Log not found.</div>
       </AppShell>
     );
   }
 
-  const history = await prisma.auditEvent.findMany({
-    where: {
-      organizationId: user.organizationId,
-      entityType: "ENTRY",
-      entityId: entry.id
-    },
-    include: {
-      user: true
-    },
-    orderBy: {
-      occurredAt: "desc"
-    }
-  });
+  const fields = getLogFields(entry);
 
   return (
     <AppShell user={user}>
       <div className="grid two">
         <section className="card">
-          <h1>{entry.title}</h1>
-          <div className="row">
-            <span className="pill">{entry.status}</span>
-            <span className="muted">Occurred {entry.occurredAt.toISOString()}</span>
-          </div>
-          <p>{entry.body}</p>
-          <div className="muted mono">Structured fields: {JSON.stringify(entry.structuredFieldsJson)}</div>
-          <div className="row">
-            {entry.tags.map((tag) => (
-              <span className="pill" key={tag.tagId}>{tag.tag.name}</span>
-            ))}
-          </div>
-          <div className="stack">
-            <strong>Attachments</strong>
-            {entry.attachments.map((attachment) => (
-              <div key={attachment.id}>
-                {attachment.filename} · {attachment.contentType} · {attachment.byteSize} bytes
-                <div className="muted mono">{attachment.sha256}</div>
+          <div className="embed">
+            <div className="embed-title">
+              <strong>{fields.name}</strong> | {fields.entryOrExit === "ENTRY" ? "Entry" : "Exit"}
+            </div>
+            <div className="embed-grid">
+              <div className="embed-field">
+                <span className="embed-label">Name</span>
+                <span>{fields.name}</span>
               </div>
-            ))}
-            {entry.attachments.length === 0 ? <div className="empty">No attachments.</div> : null}
+              <div className="embed-field">
+                <span className="embed-label">Entry or Exit</span>
+                <span>{fields.entryOrExit === "ENTRY" ? "Entry" : "Exit"}</span>
+              </div>
+              <div className="embed-field">
+                <span className="embed-label">Reason</span>
+                <span>{fields.reason}</span>
+              </div>
+              <div className="embed-field">
+                <span className="embed-label">Authorised by</span>
+                <span>{fields.authorisedBy}</span>
+              </div>
+              <div className="embed-field">
+                <span className="embed-label">Timestamp</span>
+                <span className="timestamp-text">{fields.timestamp}</span>
+              </div>
+            </div>
           </div>
           {entry.status === "APPROVED" && canCreateEntry(user.role) ? (
             <div className="card">
-              <h3>Supersede approved entry</h3>
+              <h3>Supersede approved log</h3>
               <EntryForm logbookId={entry.logbookId} supersedesEntryId={entry.id} />
             </div>
           ) : null}
@@ -84,7 +77,7 @@ export default async function EntryDetailPage({
           ) : canApproveEntry(user.role) ? (
             <ApprovalPanel entryId={entry.id} />
           ) : (
-            <div className="empty">Only approvers can lock an entry.</div>
+            <div className="empty">Only approvers can lock a log.</div>
           )}
           {entry.supersedesEntry ? (
             <div className="stack">
@@ -102,31 +95,6 @@ export default async function EntryDetailPage({
           ) : null}
         </section>
       </div>
-      <section className="card">
-        <h2>History</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>Action</th>
-              <th>Actor</th>
-              <th>Before</th>
-              <th>After</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map((event) => (
-              <tr key={event.id}>
-                <td>{event.occurredAt.toISOString()}</td>
-                <td>{event.action}</td>
-                <td>{event.user?.displayName ?? "System"}</td>
-                <td className="mono">{JSON.stringify(event.beforeJson)}</td>
-                <td className="mono">{JSON.stringify(event.afterJson)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
     </AppShell>
   );
 }

@@ -1,33 +1,64 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatedSelect } from "@/components/animated-select";
 import { OFFLINE_QUEUE_KEY } from "@/lib/constants";
+import { type LogDirection } from "@/lib/entry-presentation";
 import { getCsrfTokenFromDocument } from "@/lib/client-security";
+
+type EntryFormValues = {
+  name: string;
+  entryOrExit: LogDirection;
+  reason: string;
+  authorisedBy: string;
+  occurredAtIso: string;
+};
 
 export function EntryForm({
   logbookId,
-  supersedesEntryId
+  supersedesEntryId,
+  entryId,
+  initialValues,
+  activeNameSuggestions = []
 }: {
   logbookId: string;
   supersedesEntryId?: string;
+  entryId?: string;
+  initialValues?: EntryFormValues;
+  activeNameSuggestions?: string[];
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [queued, setQueued] = useState(false);
+  const [entryOrExit, setEntryOrExit] = useState<LogDirection>(initialValues?.entryOrExit ?? "ENTRY");
+  const [name, setName] = useState(initialValues?.name ?? "");
+  const isEditing = Boolean(entryId);
+
+  useEffect(() => {
+    if (entryOrExit !== "EXIT") {
+      return;
+    }
+
+    if (!name.trim() && activeNameSuggestions.length > 0) {
+      setName(activeNameSuggestions[0]);
+    }
+  }, [activeNameSuggestions, entryOrExit, name]);
 
   async function queueOffline(form: FormData) {
+    const occurredAt = initialValues?.occurredAtIso ?? new Date().toISOString();
     const payload = {
       id: crypto.randomUUID(),
       logbookId,
-      title: String(form.get("title") ?? ""),
-      body: String(form.get("body") ?? ""),
-      occurredAt: new Date(String(form.get("occurredAt") ?? "")).toISOString(),
-      tags: String(form.get("tags") ?? "")
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-      structuredFieldsJson: safeJson(String(form.get("structuredFieldsJson") ?? "{}")),
+      title: String(form.get("name") ?? ""),
+      body: String(form.get("reason") ?? ""),
+      occurredAt,
+      tags: [],
+      structuredFieldsJson: {
+        entryOrExit: String(form.get("entryOrExit") ?? "ENTRY"),
+        authorisedBy: String(form.get("authorisedBy") ?? ""),
+        timestampGmt: occurredAt
+      },
       supersedesEntryId
     };
 
@@ -41,87 +72,91 @@ export function EntryForm({
     setError("");
     setQueued(false);
     const form = new FormData(event.currentTarget);
+    const occurredAt = initialValues?.occurredAtIso ?? new Date().toISOString();
+    const payload = {
+      title: String(form.get("name") ?? ""),
+      body: String(form.get("reason") ?? ""),
+      occurredAt,
+      tags: [],
+      structuredFieldsJson: {
+        entryOrExit: String(form.get("entryOrExit") ?? "ENTRY"),
+        authorisedBy: String(form.get("authorisedBy") ?? ""),
+        timestampGmt: occurredAt
+      },
+      supersedesEntryId
+    };
 
-    if (!navigator.onLine) {
+    if (!navigator.onLine && !isEditing) {
       await queueOffline(form);
       event.currentTarget.reset();
       return;
     }
 
-    const upload = new FormData();
-    upload.set("title", String(form.get("title") ?? ""));
-    upload.set("body", String(form.get("body") ?? ""));
-    upload.set("occurredAt", new Date(String(form.get("occurredAt") ?? "")).toISOString());
-    upload.set("tags", String(form.get("tags") ?? ""));
-    upload.set("structuredFieldsJson", String(form.get("structuredFieldsJson") ?? "{}"));
-    if (supersedesEntryId) {
-      upload.set("supersedesEntryId", supersedesEntryId);
-    }
-
-    const filesInput = form.getAll("attachments");
-    for (const item of filesInput) {
-      if (item instanceof File && item.size > 0) {
-        upload.append("attachments", item);
-      }
-    }
-
-    const response = await fetch(`/api/logbooks/${logbookId}/entries`, {
-      method: "POST",
+    const response = await fetch(isEditing ? `/api/entries/${entryId}` : `/api/logbooks/${logbookId}/entries`, {
+      method: isEditing ? "PATCH" : "POST",
       headers: {
+        "content-type": "application/json",
         "x-csrf-token": getCsrfTokenFromDocument()
       },
-      body: upload
+      body: JSON.stringify(payload)
     });
 
-    const payload = (await response.json()) as { error?: string; entry?: { id: string } };
-    if (!response.ok || !payload.entry) {
-      setError(payload.error ?? "Could not create the entry");
+    const result = (await response.json()) as { error?: string; entry?: { id: string } };
+    if (!response.ok || !result.entry) {
+      setError(result.error ?? (isEditing ? "Could not update the log" : "Could not create the log"));
       return;
     }
 
-    router.push(`/entries/${payload.entry.id}`);
+    router.push(`/entries/${result.entry.id}`);
     router.refresh();
   }
 
   return (
     <form onSubmit={onSubmit}>
       <label>
-        Title
-        <input name="title" required maxLength={200} />
+        Name
+        <input
+          name="name"
+          required
+          maxLength={200}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          list={activeNameSuggestions.length > 0 ? "active-log-names" : undefined}
+        />
       </label>
       <label>
-        Body
-        <textarea name="body" required />
+        Entry or Exit
+        <AnimatedSelect
+          name="entryOrExit"
+          label="Entry or Exit"
+          value={entryOrExit}
+          onChange={(value) => setEntryOrExit(value as LogDirection)}
+          options={[
+            { value: "ENTRY", label: "Entry" },
+            { value: "EXIT", label: "Exit" }
+          ]}
+        />
       </label>
       <label>
-        Occurred at
-        <input name="occurredAt" type="datetime-local" required />
+        Reason
+        <textarea className="textarea-medium" name="reason" required defaultValue={initialValues?.reason ?? ""} />
       </label>
       <label>
-        Tags
-        <input name="tags" placeholder="handover, maintenance" />
+        Authorised by
+        <input name="authorisedBy" required maxLength={120} defaultValue={initialValues?.authorisedBy ?? ""} />
       </label>
-      <label>
-        Structured fields JSON
-        <textarea name="structuredFieldsJson" defaultValue="{}" />
-      </label>
-      <label>
-        Attachments
-        <input name="attachments" type="file" multiple />
-      </label>
-      {queued ? <div className="muted">Offline: entry queued locally and will sync when online.</div> : null}
+      {queued ? <div className="muted">Offline: log queued locally and will sync when online.</div> : null}
       {error ? <div className="danger">{error}</div> : null}
+      {activeNameSuggestions.length > 0 ? (
+        <datalist id="active-log-names">
+          {activeNameSuggestions.map((item) => (
+            <option key={item} value={item} />
+          ))}
+        </datalist>
+      ) : null}
       <button className="primary" type="submit">
-        {supersedesEntryId ? "Create superseding entry" : "Create entry"}
+        {isEditing ? "Save changes" : supersedesEntryId ? "Create superseding log" : "Create log"}
       </button>
     </form>
   );
-}
-
-function safeJson(value: string) {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return {};
-  }
 }

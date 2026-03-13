@@ -1,5 +1,6 @@
 import argon2 from "argon2";
 import { PrismaClient, UserRole } from "@prisma/client";
+import { ACTIVE_LOG_TAG, DEFAULT_LOGBOOK_NAME, DEFAULT_LOGBOOK_TYPE } from "../lib/constants";
 
 const prisma = new PrismaClient();
 
@@ -53,28 +54,28 @@ async function main() {
     where: {
       organizationId_name: {
         organizationId: organization.id,
-        name: "Operations"
+        name: DEFAULT_LOGBOOK_NAME
       }
     },
     update: {},
     create: {
       organizationId: organization.id,
-      name: "Operations",
-      type: "GENERAL"
+      name: DEFAULT_LOGBOOK_NAME,
+      type: DEFAULT_LOGBOOK_TYPE
     }
   });
 
-  const handoverTag = await prisma.tag.upsert({
+  const activeTag = await prisma.tag.upsert({
     where: {
       organizationId_name: {
         organizationId: organization.id,
-        name: "handover"
+        name: ACTIVE_LOG_TAG
       }
     },
     update: {},
     create: {
       organizationId: organization.id,
-      name: "handover"
+      name: ACTIVE_LOG_TAG
     }
   });
 
@@ -82,17 +83,17 @@ async function main() {
     data: {
       logbookId: logbook.id,
       createdByUserId: admin.id,
-      title: "Shift handover completed",
-      body: "Checked alarms, backup generator and fuel levels.",
+      title: "Front Gate",
+      body: "Contractor signed in for a scheduled maintenance visit.",
       occurredAt: new Date(),
       status: "SUBMITTED",
       structuredFieldsJson: {
-        location: "Plant A",
-        severity: "info"
+        entryOrExit: "ENTRY",
+        authorisedBy: "Admin User"
       },
       tags: {
         create: {
-          tagId: handoverTag.id
+          tagId: activeTag.id
         }
       }
     }

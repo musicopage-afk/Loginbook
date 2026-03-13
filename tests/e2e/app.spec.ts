@@ -14,7 +14,7 @@ async function login(page: Page, fixture: E2EFixture) {
   await page.getByLabel("Email").fill(fixture.adminEmail);
   await page.getByLabel("Password").fill(fixture.adminPassword);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/logbooks$/);
+  await expect(page).toHaveURL(/\/logbooks\/[^/]+$/);
 }
 
 async function readDownload(download: Awaited<ReturnType<Page["waitForEvent"]>>) {
@@ -48,19 +48,16 @@ test("shows direct login errors for wrong password and unknown email", async ({ 
 });
 
 test("supports the core admin workflow end to end", async ({ page }, testInfo) => {
-  const createdLogbookName = "E2E Shift Logbook";
-  const createdEntryTitle = "Generator inspection complete";
-  const createdEntryBody = "Completed generator inspection and recorded meter readings.";
+  const createdEntryTitle = "Main Gate";
+  const createdEntryBody = "Visitor signed out after the evening shift handover.";
+  const updatedEntryBody = "Visitor signed out after confirming all handover notes were complete.";
 
   await login(page, fixture);
-  await expect(page.getByRole("heading", { name: "Logbooks" })).toBeVisible();
-  await expect(page.getByText(fixture.operationsLogbookName)).toBeVisible();
+  await expect(page.getByRole("heading", { name: fixture.logbookName })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText("Log Book");
   await capture(page, testInfo, "dashboard");
-
-  await page.getByRole("link", { name: fixture.operationsLogbookName }).click();
-  await expect(page.getByRole("heading", { name: fixture.operationsLogbookName })).toBeVisible();
-  await expect(page.getByText(fixture.operationsEntryTitle)).toBeVisible();
-  await capture(page, testInfo, "operations-logbook");
+  await expect(page.getByText(fixture.seededEntryName)).toBeVisible();
+  await capture(page, testInfo, "logbook-overview");
 
   const [existingLogbookCsv] = await Promise.all([
     page.waitForEvent("download"),
@@ -68,78 +65,61 @@ test("supports the core admin workflow end to end", async ({ page }, testInfo) =
   ]);
   const existingLogbookCsvText = await readDownload(existingLogbookCsv);
   expect(existingLogbookCsv.suggestedFilename()).toContain("logbook-");
-  expect(existingLogbookCsvText).toContain(fixture.operationsEntryTitle);
+  expect(existingLogbookCsvText).toContain(fixture.seededEntryName);
 
-  await page.getByRole("link", { name: "Logbooks" }).click();
-  await page.getByLabel("Name").fill(createdLogbookName);
-  await page.getByLabel("Type").fill("SHIFT");
-  await Promise.all([
-    page.waitForResponse((response) => response.url().endsWith("/api/logbooks") && response.status() === 201),
-    page.getByRole("button", { name: "Create logbook" }).click()
-  ]);
-  await page.reload();
-  await expect(page.getByRole("link", { name: createdLogbookName })).toBeVisible();
-  await capture(page, testInfo, "logbook-created");
+  await page.getByRole("link", { name: "Create log" }).click();
+  await expect(page.getByRole("heading", { name: "Create log" })).toBeVisible();
 
-  await page.getByRole("link", { name: createdLogbookName }).click();
-  await expect(page.getByRole("heading", { name: createdLogbookName })).toBeVisible();
-  await page.getByRole("link", { name: "New entry" }).click();
-  await expect(page.getByRole("heading", { name: "Create entry" })).toBeVisible();
-
-  await page.getByLabel("Title").fill(createdEntryTitle);
-  await page.getByLabel("Body").fill(createdEntryBody);
-  await page.getByLabel("Occurred at").fill("2026-03-13T10:45");
-  await page.getByLabel("Tags").fill("inspection,generator");
-  await page.getByLabel("Structured fields JSON").fill("{\"severity\":\"info\",\"equipment\":\"Generator 2\"}");
+  await page.getByLabel("Name").fill(createdEntryTitle);
+  await page.getByRole("button", { name: /Entry or Exit/i }).click();
+  await page.getByRole("option", { name: "Exit" }).click();
+  await page.getByLabel("Reason").fill(createdEntryBody);
+  await page.getByLabel("Authorised by").fill(fixture.adminDisplayName);
   await Promise.all([
     page.waitForResponse((response) => response.url().includes("/api/logbooks/") && response.status() === 201),
-    page.getByRole("button", { name: "Create entry" }).click()
+    page.getByRole("button", { name: "Create log" }).click()
   ]);
 
+  const entryEmbed = page.locator(".embed");
   await expect(page).toHaveURL(/\/entries\//);
-  await expect(page.getByRole("heading", { name: createdEntryTitle })).toBeVisible();
-  await expect(page.locator("p").filter({ hasText: createdEntryBody }).first()).toBeVisible();
-  await expect(page.locator(".pill").filter({ hasText: "SUBMITTED" }).first()).toBeVisible();
+  await expect(page.getByText(`${createdEntryTitle} | Exit`)).toBeVisible();
+  await expect(entryEmbed.getByText(createdEntryBody)).toBeVisible();
+  await expect(entryEmbed.getByText(fixture.adminDisplayName)).toBeVisible();
   await capture(page, testInfo, "entry-created");
 
-  await page.getByLabel("Approval note").fill("Approved after review");
+  await page.locator(".topbar").getByRole("link", { name: "Log Book" }).click();
+  const createdLogRow = page.locator(".entry-row").filter({ hasText: createdEntryTitle });
+  await expect(createdLogRow).toBeVisible();
+  await capture(page, testInfo, "entry-listed");
+
+  await createdLogRow.getByRole("link", { name: "Edit" }).click();
+  await expect(page.getByRole("heading", { name: "Edit log" })).toBeVisible();
+  await page.getByLabel("Reason").fill(updatedEntryBody);
   await Promise.all([
-    page.waitForResponse((response) => response.url().includes("/approve") && response.ok()),
-    page.getByRole("button", { name: "Approve and lock entry" }).click()
+    page.waitForResponse((response) => response.url().includes("/api/entries/") && response.ok()),
+    page.getByRole("button", { name: "Save changes" }).click()
   ]);
-  await expect(page.getByText(`Approved by ${fixture.adminDisplayName}`)).toBeVisible();
-  await capture(page, testInfo, "entry-approved");
+  await expect(page.locator(".embed").getByText(updatedEntryBody)).toBeVisible();
+  await capture(page, testInfo, "entry-edited");
 
-  await page.getByRole("link", { name: "Audit" }).click();
-  await expect(page.getByRole("heading", { name: "Audit events" })).toBeVisible();
-  await page.getByLabel("Action").fill("APPROVE");
-  await page.getByRole("button", { name: "Apply filters" }).click();
-  await expect(page.getByRole("cell", { name: "APPROVE" }).first()).toBeVisible();
-  await capture(page, testInfo, "audit-events");
-
-  const [auditCsv] = await Promise.all([
-    page.waitForEvent("download"),
-    page.getByRole("link", { name: "Export audit CSV" }).click()
-  ]);
-  const auditCsvText = await readDownload(auditCsv);
-  expect(auditCsv.suggestedFilename()).toBe("audit-events.csv");
-  expect(auditCsvText).toContain("APPROVE");
-
-  await page.getByRole("link", { name: "Logbooks" }).click();
-  page.once("dialog", async (dialog) => {
-    expect(dialog.message()).toContain(createdLogbookName);
-    await dialog.accept();
-  });
-  const createdLogbookCard = page.locator("div.card").filter({
-    has: page.getByRole("link", { name: createdLogbookName })
-  });
+  await page.locator(".topbar").getByRole("link", { name: "Log Book" }).click();
+  const updatedLogRow = page.locator(".entry-row").filter({ hasText: createdEntryTitle });
+  await updatedLogRow.getByRole("button", { name: "Delete" }).click();
+  const deleteDialog = page.getByRole("dialog");
+  await expect(deleteDialog).toBeVisible();
+  await capture(page, testInfo, "delete-modal");
   await Promise.all([
-    page.waitForResponse((response) => response.url().includes("/api/logbooks/") && response.ok()),
-    createdLogbookCard.getByRole("button", { name: "Delete" }).click()
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/entries/") &&
+        response.request().method() === "DELETE" &&
+        response.ok()
+    ),
+    deleteDialog.getByRole("button", { name: "Delete" }).click()
   ]);
   await page.reload();
-  await expect(page.getByRole("link", { name: createdLogbookName })).toHaveCount(0);
-  await capture(page, testInfo, "logbook-deleted");
+  await expect(page.getByText(createdEntryTitle)).toHaveCount(0);
+  await capture(page, testInfo, "entry-deleted");
 
   await page.getByRole("button", { name: "Logout" }).click();
   await expect(page).toHaveURL(/\/login$/);

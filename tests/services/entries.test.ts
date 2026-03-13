@@ -8,6 +8,7 @@ const tx = {
   entry: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
+    findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn()
   },
@@ -54,6 +55,7 @@ describe("entry services", () => {
     prisma.entry.update.mockReset();
     tx.entry.findUnique.mockReset();
     tx.entry.findFirst.mockReset();
+    tx.entry.findMany.mockReset();
     tx.entry.create.mockReset();
     tx.entry.update.mockReset();
     tx.tag.upsert.mockReset();
@@ -103,7 +105,8 @@ describe("entry services", () => {
     tx.entry.findUnique.mockResolvedValue(prior);
     tx.entry.update.mockResolvedValue({ ...prior, status: EntryStatus.SUPERSEDED });
     tx.entry.create.mockResolvedValue(createdEntry);
-    tx.tag.findMany.mockResolvedValue([{ id: "tag_1", name: "handover" }]);
+    tx.tag.findMany.mockResolvedValue([{ id: "tag_1", name: "active" }]);
+    tx.entry.findMany.mockResolvedValue([]);
     getStorageAdapter.mockReturnValue({
       save: vi.fn().mockResolvedValue({
         storageUri: "/tmp/file.txt",
@@ -152,6 +155,7 @@ describe("entry services", () => {
       occurredAt: new Date("2026-03-13T10:00:00.000Z")
     });
     tx.tag.findMany.mockResolvedValue([]);
+    tx.entry.findMany.mockResolvedValue([]);
     getStorageAdapter.mockReturnValue({
       save: vi.fn()
     });
@@ -208,6 +212,51 @@ describe("entry services", () => {
         }
       )
     ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("creates exit entries with the past tag and inactivates matching active logs", async () => {
+    const { createEntry } = await import("@/lib/services/entries");
+
+    tx.entry.create.mockResolvedValue({
+      id: "entry_exit",
+      title: "Front Gate"
+    });
+    tx.tag.findMany
+      .mockResolvedValueOnce([{ id: "tag_past", name: "past" }])
+      .mockResolvedValueOnce([
+        { id: "tag_active", name: "active" },
+        { id: "tag_inactive", name: "inactive" }
+      ]);
+    tx.entry.findMany.mockResolvedValue([{ id: "entry_active" }]);
+
+    await createEntry(
+      {
+        organizationId: "org_1",
+        userId: "user_1",
+        role: UserRole.EDITOR
+      },
+      {
+        logbookId: "lb_1",
+        title: "Front Gate",
+        body: "Signed out",
+        occurredAt: "2026-03-13T10:00:00.000Z",
+        tags: [],
+        structuredFieldsJson: {
+          entryOrExit: "EXIT"
+        }
+      }
+    );
+
+    expect(tx.entryTag.createMany).toHaveBeenCalledWith({
+      data: [{ entryId: "entry_exit", tagId: "tag_past" }],
+      skipDuplicates: true
+    });
+    expect(tx.entryTag.deleteMany).toHaveBeenCalledWith({
+      where: {
+        entryId: "entry_active",
+        tagId: "tag_active"
+      }
+    });
   });
 
   it("approves entries and records the approval actor", async () => {

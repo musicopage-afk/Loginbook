@@ -11,7 +11,7 @@ export default async function LoginPage() {
     <AppShell>
       <div className="grid two">
         <section className="card hero">
-          <h1>Operational logbooks with durable history</h1>
+          <h1>Operational log book with durable history</h1>
           <p className="muted">
             Record entries, approvals and exports with tenant isolation, append-only audit events and
             server-enforced roles.

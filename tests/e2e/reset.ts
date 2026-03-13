@@ -1,5 +1,6 @@
 import argon2 from "argon2";
 import { EntryStatus, PrismaClient, UserRole, UserStatus } from "@prisma/client";
+import { ACTIVE_LOG_TAG } from "@/lib/constants";
 
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/loginbook?schema=public";
 
@@ -11,8 +12,8 @@ export type E2EFixture = {
   adminPassword: string;
   adminDisplayName: string;
   approverEmail: string;
-  operationsLogbookName: string;
-  operationsEntryTitle: string;
+  logbookName: string;
+  seededEntryName: string;
 };
 
 const ADMIN_PASSWORD = "ChangeMe123!";
@@ -26,8 +27,8 @@ export async function resetE2EData(): Promise<E2EFixture> {
   const organizationId = `e2e-org-${suffix}`;
   const adminEmail = `e2e-admin+${suffix}@loginbook.local`;
   const approverEmail = `e2e-approver+${suffix}@loginbook.local`;
-  const operationsLogbookName = "Operations";
-  const operationsEntryTitle = "Initial shift handover";
+  const logbookName = "Log Book";
+  const seededEntryName = "Front Gate";
   const adminDisplayName = "E2E Admin";
 
   const organization = await prisma.organization.create({
@@ -63,15 +64,15 @@ export async function resetE2EData(): Promise<E2EFixture> {
   const logbook = await prisma.logbook.create({
     data: {
       organizationId: organization.id,
-      name: operationsLogbookName,
-      type: "GENERAL"
+      name: logbookName,
+      type: "LOG_BOOK"
     }
   });
 
-  const handoverTag = await prisma.tag.create({
+  const activeTag = await prisma.tag.create({
     data: {
       organizationId: organization.id,
-      name: "handover"
+      name: ACTIVE_LOG_TAG
     }
   });
 
@@ -79,21 +80,19 @@ export async function resetE2EData(): Promise<E2EFixture> {
     data: {
       logbookId: logbook.id,
       createdByUserId: admin.id,
-      title: operationsEntryTitle,
-      body: "Checked alarms, fuel levels and handover notes.",
+      title: seededEntryName,
+      body: "Contractor signed in for a scheduled maintenance visit.",
       occurredAt: new Date("2026-03-13T08:30:00.000Z"),
       status: EntryStatus.SUBMITTED,
       structuredFieldsJson: {
-        location: "Plant A",
-        severity: "info"
+        entryOrExit: "ENTRY",
+        authorisedBy: adminDisplayName
+      },
+      tags: {
+        create: {
+          tagId: activeTag.id
+        }
       }
-    }
-  });
-
-  await prisma.entryTag.create({
-    data: {
-      entryId: entry.id,
-      tagId: handoverTag.id
     }
   });
 
@@ -137,8 +136,8 @@ export async function resetE2EData(): Promise<E2EFixture> {
     adminPassword: ADMIN_PASSWORD,
     adminDisplayName,
     approverEmail,
-    operationsLogbookName,
-    operationsEntryTitle
+    logbookName,
+    seededEntryName
   };
 }
 
