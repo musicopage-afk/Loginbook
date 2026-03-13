@@ -1,42 +1,24 @@
 services:
-  db:
-    image: postgres:16-bookworm
-    container_name: loginbook-db
-    environment:
-      POSTGRES_DB: loginbook
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d loginbook"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
   app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: loginbook-app
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/loginbook?schema=public
+      DATABASE_URL: file:/app/data/loginbook.db
       APP_URL: http://localhost:3000
       SESSION_SECRET: replace-with-32-plus-random-bytes
       CSRF_SECRET: replace-with-32-plus-random-bytes
       STORAGE_DRIVER: local
       LOCAL_UPLOAD_DIR: ./uploads
-      RUN_MIGRATIONS_ON_START: "true"
+      RUN_DB_PUSH_ON_START: "true"
+      RUN_SEED_ON_START: "true"
     ports:
       - "3000:3000"
     volumes:
+      - loginbook_data:/app/data
       - loginbook_uploads:/app/uploads
 
 volumes:
-  postgres_data:
+  loginbook_data:
   loginbook_uploads:

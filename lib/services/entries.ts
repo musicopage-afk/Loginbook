@@ -108,14 +108,18 @@ async function markMatchingActiveLogsInactive(
       }
     });
 
-    await tx.entryTag.createMany({
-      data: [
-        {
+    await tx.entryTag.upsert({
+      where: {
+        entryId_tagId: {
           entryId: item.id,
           tagId: inactiveTag.id
         }
-      ],
-      skipDuplicates: true
+      },
+      update: {},
+      create: {
+        entryId: item.id,
+        tagId: inactiveTag.id
+      }
     });
   }
 }
@@ -264,8 +268,7 @@ export async function createEntry(
         data: tags.map((tag) => ({
           entryId: entry.id,
           tagId: tag.id
-        })),
-        skipDuplicates: true
+        }))
       });
     }
 

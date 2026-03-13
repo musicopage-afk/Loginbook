@@ -81,13 +81,16 @@ async function main() {
     }
   });
 
-  const entry = await prisma.entry.create({
-    data: {
+  const entry = await prisma.entry.upsert({
+    where: { id: "seed-entry-front-gate" },
+    update: {},
+    create: {
+      id: "seed-entry-front-gate",
       logbookId: logbook.id,
       createdByUserId: admin.id,
       title: "Front Gate",
       body: "Contractor signed in for a scheduled maintenance visit.",
-      occurredAt: new Date(),
+      occurredAt: new Date("2026-03-13T09:00:00.000Z"),
       status: "SUBMITTED",
       structuredFieldsJson: {
         entryOrExit: "ENTRY",
@@ -102,28 +105,34 @@ async function main() {
     }
   });
 
-  await prisma.auditEvent.createMany({
-    data: [
-      {
-        organizationId: organization.id,
-        userId: admin.id,
-        action: "CREATE",
-        entityType: "ENTRY",
-        entityId: entry.id,
-        afterJson: {
-          title: entry.title,
-          status: entry.status
-        }
-      },
-      {
-        organizationId: organization.id,
-        userId: approver.id,
-        action: "LOGIN",
-        entityType: "SESSION",
-        entityId: "seed-session"
+  await prisma.auditEvent.upsert({
+    where: { id: "seed-audit-entry-create" },
+    update: {},
+    create: {
+      id: "seed-audit-entry-create",
+      organizationId: organization.id,
+      userId: admin.id,
+      action: "CREATE",
+      entityType: "ENTRY",
+      entityId: entry.id,
+      afterJson: {
+        title: entry.title,
+        status: entry.status
       }
-    ],
-    skipDuplicates: true
+    }
+  });
+
+  await prisma.auditEvent.upsert({
+    where: { id: "seed-audit-login" },
+    update: {},
+    create: {
+      id: "seed-audit-login",
+      organizationId: organization.id,
+      userId: approver.id,
+      action: "LOGIN",
+      entityType: "SESSION",
+      entityId: "seed-session"
+    }
   });
 }
 

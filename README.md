@@ -20,7 +20,7 @@ LoginBook is a production-minded MVP digital logbook for multi-tenant organisati
 
 ## Stack
 - Frontend and backend: Next.js, React, TypeScript
-- Database: PostgreSQL
+- Database: SQLite
 - ORM: Prisma
 - Auth: Argon2 email/password, OIDC environment stub
 - Tests: Vitest
@@ -28,18 +28,18 @@ LoginBook is a production-minded MVP digital logbook for multi-tenant organisati
 
 ## Setup
 1. Copy `.env.example` to `.env` and set strong random values for `SESSION_SECRET` and `CSRF_SECRET`.
-2. Create a PostgreSQL database named `loginbook` or update `DATABASE_URL` to your target database.
+2. Set `DATABASE_URL` to a SQLite file path such as `file:./prisma/dev.db`.
 3. Install dependencies with `npm install`.
 4. Generate Prisma client with `npm run prisma:generate`.
-5. Apply migrations with `npm run prisma:deploy` for an existing database or `npm run prisma:migrate` during local development.
+5. Sync the schema with `npx prisma db push`.
 6. Seed the database with `npm run prisma:seed`.
 7. Start the app with `npm run dev`.
 
 ## Docker
 1. Review the environment values in `docker-compose.yml` and replace the placeholder secrets before using it outside local development.
 2. Start the stack with `docker compose up --build`.
-3. The app container runs `prisma migrate deploy` on startup by default before launching `npm start`.
-4. Uploaded files are persisted in the `loginbook_uploads` volume and PostgreSQL data is persisted in `postgres_data`.
+3. The app container automatically runs `prisma db push` and `npm run prisma:seed` on startup before launching `npm start`.
+4. The SQLite database is persisted in the `loginbook_data` volume and uploaded files are persisted in `loginbook_uploads`.
 
 For an image-only workflow:
 - Build: `docker build -t loginbook .`
@@ -52,8 +52,9 @@ For an image-only workflow:
 Change these immediately outside local development.
 
 ## Environment Variables
-- `DATABASE_URL`: PostgreSQL connection string.
-- `DATABASE_PRIVATE_URL`, `POSTGRES_URL`, `POSTGRES_PRISMA_URL`, `POSTGRESQL_URL`: accepted startup fallbacks for hosted platforms when `DATABASE_URL` is not provided directly. The container entrypoint maps the first available value to `DATABASE_URL`.
+- `DATABASE_URL`: SQLite connection string such as `file:/app/data/loginbook.db` in containers or `file:./prisma/dev.db` locally.
+- `DATABASE_PRIVATE_URL`, `DATABASE_URL_UNPOOLED`, `DATABASE_PUBLIC_URL`, `POSTGRES_URL`, `POSTGRES_PRISMA_URL`, `POSTGRES_URL_NON_POOLING`, `POSTGRESQL_URL`: accepted runtime fallbacks when a hosted platform injects a database URL under a different name.
+- `PGHOST`, `PGUSER`, `PGDATABASE`, `PGPASSWORD`, `PGPORT`, `PGSCHEMA`: accepted runtime inputs for constructing `DATABASE_URL` automatically when a platform exposes split Postgres variables.
 - `APP_URL`: External application origin. Used for origin validation.
 - `SESSION_SECRET`: Secret used for session token signing inputs.
 - `CSRF_SECRET`: Secret used for signed CSRF token generation.
@@ -61,7 +62,7 @@ Change these immediately outside local development.
 - `STORAGE_DRIVER`: `local` or `s3`.
 - `LOCAL_UPLOAD_DIR`: filesystem upload path for local development.
 - `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`: S3-compatible storage configuration.
-- `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_ATTEMPTS`: in-memory login and sensitive endpoint rate limit settings.
+- `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_ATTEMPTS`: login rate limit settings persisted in the application database.
 
 ## Project Structure
 - `app/`: App Router pages, route handlers, manifest and styling.
@@ -73,11 +74,11 @@ Change these immediately outside local development.
 
 ## Security Notes
 - Passwords are hashed with Argon2id. Plaintext passwords are never stored.
-- Sessions are stored server-side with hashed tokens in the database and issued via HTTP-only cookies with `SameSite=Lax`.
+- Sessions are stored server-side with hashed tokens in the SQLite database and issued via HTTP-only cookies with `SameSite=Lax`.
 - Login rotates the session identifier by revoking any prior presented session before issuing a new one.
 - Logout revokes the active session in the database.
 - State-changing routes validate `Origin` and a signed CSRF token carried in both cookie and request header.
-- Login and other sensitive flows use rate limiting. The MVP implementation is in-memory and should be swapped for Redis or another shared backend in multi-instance production.
+- Login and other sensitive flows use rate limiting persisted in the application database.
 - Inputs are validated with Zod and auditable strings are sanitised to strip control characters to reduce log injection risk.
 - Attachments are size-limited to 20MB and persisted with SHA-256 checksum metadata.
 - Approved entries are locked from direct edits. Further change requires a superseding entry.
@@ -90,7 +91,6 @@ Change these immediately outside local development.
 ## Audit Immutability
 - Audit events are written only through `createAuditEvent`.
 - The application never updates or deletes `audit_events`.
-- The PostgreSQL migration creates `BEFORE UPDATE` and `BEFORE DELETE` triggers on `audit_events` that raise an exception, making the table append-only at the database level.
 - Entry and logbook deletion is implemented as soft delete, preserving both business history and audit history.
 
 ## Testing

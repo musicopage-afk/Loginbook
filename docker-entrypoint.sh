@@ -18,12 +18,18 @@ if [ -z "${DATABASE_URL:-}" ] && [ -n "${PGHOST:-}" ] && [ -n "${PGUSER:-}" ] &&
 fi
 
 if [ -z "${DATABASE_URL:-}" ]; then
-  echo "DATABASE_URL is not set. Configure DATABASE_URL or one of: DATABASE_PRIVATE_URL, DATABASE_URL_UNPOOLED, DATABASE_PUBLIC_URL, POSTGRES_URL, POSTGRES_PRISMA_URL, POSTGRES_URL_NON_POOLING, POSTGRESQL_URL, or provide PGHOST/PGUSER/PGDATABASE." >&2
-  exit 1
+  export DATABASE_URL="file:/app/data/loginbook.db"
+  echo "Defaulted DATABASE_URL to SQLite at /app/data/loginbook.db"
 fi
 
-if [ "${RUN_MIGRATIONS_ON_START:-true}" = "true" ]; then
-  npx prisma migrate deploy
+mkdir -p /app/data /app/uploads
+
+if [ "${RUN_DB_PUSH_ON_START:-true}" = "true" ]; then
+  npx prisma db push --accept-data-loss --skip-generate
+fi
+
+if [ "${RUN_SEED_ON_START:-true}" = "true" ]; then
+  npm run prisma:seed
 fi
 
 exec "$@"

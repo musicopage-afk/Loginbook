@@ -18,11 +18,6 @@ RUN apt-get update \
 COPY package.json package-lock.json ./
 RUN npm ci
 
-FROM base AS prod-deps
-
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
-
 FROM deps AS builder
 
 ENV NODE_ENV=production
@@ -35,9 +30,7 @@ FROM base AS runner
 
 ENV PORT=3000
 
-COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma

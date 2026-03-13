@@ -47,8 +47,8 @@ export function buildEntryWhere(
       : undefined,
     OR: query
       ? [
-          { title: { contains: query, mode: "insensitive" } },
-          { body: { contains: query, mode: "insensitive" } }
+          { title: { contains: query } },
+          { body: { contains: query } }
         ]
       : undefined
   };

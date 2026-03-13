@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -127,7 +127,7 @@ model Entry {
   createdByUserId      String      @map("created_by_user_id")
   title                String
   body                 String
-  structuredFieldsJson Json        @default("{}") @map("structured_fields_json")
+  structuredFieldsJson Json        @map("structured_fields_json")
   status               EntryStatus @default(DRAFT)
   occurredAt           DateTime    @map("occurred_at")
   createdAt            DateTime    @default(now()) @map("created_at")
