@@ -33,7 +33,7 @@ export function ShellSidebar({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const isFirstRender = useRef(true);
 
   useEffect(() => {
