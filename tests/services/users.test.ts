@@ -3,11 +3,9 @@ import { UserRole, UserStatus } from "@prisma/client";
 
 const createAuditEvent = vi.fn();
 const hashPassword = vi.fn();
+const revokeSessionsByUserId = vi.fn();
 
 const prisma = {
-  session: {
-    deleteMany: vi.fn()
-  },
   user: {
     findMany: vi.fn(),
     findFirst: vi.fn(),
@@ -21,7 +19,8 @@ vi.mock("@/lib/audit", () => ({
 }));
 
 vi.mock("@/lib/auth", () => ({
-  hashPassword
+  hashPassword,
+  revokeSessionsByUserId
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -34,7 +33,7 @@ describe("user services", () => {
     createAuditEvent.mockReset();
     hashPassword.mockReset();
     prisma.user.findMany.mockReset();
-    prisma.session.deleteMany.mockReset();
+    revokeSessionsByUserId.mockReset();
     prisma.user.findFirst.mockReset();
     prisma.user.create.mockReset();
     prisma.user.update.mockReset();
@@ -91,6 +90,36 @@ describe("user services", () => {
     ).rejects.toMatchObject({ status: 409 });
   });
 
+  it("revokes active sessions when an administrator disables another account", async () => {
+    const { updateUserStatus } = await import("@/lib/services/users");
+    prisma.user.findFirst.mockResolvedValue({
+      id: "user_2",
+      organizationId: "org_1",
+      email: "guard-one",
+      role: UserRole.CONTRIBUTOR,
+      displayName: "CONTRIBUTOR User",
+      status: UserStatus.ACTIVE
+    });
+    prisma.user.update.mockResolvedValue({
+      id: "user_2",
+      email: "guard-one",
+      role: UserRole.CONTRIBUTOR,
+      status: UserStatus.DISABLED
+    });
+
+    await updateUserStatus(
+      {
+        organizationId: "org_1",
+        userId: "admin_1",
+        role: UserRole.ADMIN
+      },
+      "user_2",
+      UserStatus.DISABLED
+    );
+
+    expect(revokeSessionsByUserId).toHaveBeenCalledWith("user_2");
+  });
+
   it("allows an administrator to update their own credentials", async () => {
     const { updateUserCredentials } = await import("@/lib/services/users");
     hashPassword.mockResolvedValue("self-hash");
@@ -133,6 +162,7 @@ describe("user services", () => {
         })
       })
     );
+    expect(revokeSessionsByUserId).toHaveBeenCalledWith("admin_1");
   });
 
   it("updates a managed account username and password", async () => {
@@ -178,6 +208,7 @@ describe("user services", () => {
         })
       })
     );
+    expect(revokeSessionsByUserId).toHaveBeenCalledWith("user_2");
   });
 
   it("tombstones a managed account so it is removed from the visible account list", async () => {
@@ -189,7 +220,6 @@ describe("user services", () => {
       role: UserRole.EDITOR,
       displayName: "EDITOR User"
     });
-    prisma.session.deleteMany.mockResolvedValue({ count: 1 });
     prisma.user.update.mockResolvedValue({
       id: "user_2",
       email: "deleted-account::user_2",
@@ -208,11 +238,7 @@ describe("user services", () => {
     );
 
     expect(result.id).toBe("user_2");
-    expect(prisma.session.deleteMany).toHaveBeenCalledWith({
-      where: {
-        userId: "user_2"
-      }
-    });
+    expect(revokeSessionsByUserId).toHaveBeenCalledWith("user_2");
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: {
         id: "user_2"

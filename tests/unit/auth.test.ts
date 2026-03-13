@@ -31,4 +31,28 @@ describe("auth password hashing", () => {
     await expect(verifyPassword("ChangeMe123!", hash)).resolves.toBe(true);
     await expect(verifyPassword("WrongPass123!", hash)).resolves.toBe(false);
   });
+
+  it("only returns active sessions for active users", async () => {
+    const { prisma } = await import("@/lib/prisma");
+    const { cookies } = await import("next/headers");
+    const cookieStore = {
+      get: vi.fn().mockReturnValue({ value: "raw-session-token" })
+    };
+    vi.mocked(cookies).mockResolvedValue(cookieStore as never);
+    vi.mocked(prisma.session.findFirst).mockResolvedValue(null);
+
+    const { getCurrentSession } = await import("@/lib/auth");
+    const session = await getCurrentSession();
+
+    expect(session).toBeNull();
+    expect(prisma.session.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          user: {
+            status: "ACTIVE"
+          }
+        })
+      })
+    );
+  });
 });

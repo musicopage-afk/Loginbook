@@ -101,6 +101,18 @@ export async function revokeSessionByToken(token: string) {
   await clearSessionCookie();
 }
 
+export async function revokeSessionsByUserId(userId: string) {
+  await prisma.session.updateMany({
+    where: {
+      userId,
+      revokedAt: null
+    },
+    data: {
+      revokedAt: new Date()
+    }
+  });
+}
+
 export async function getCurrentSession() {
   const token = await getRequestSessionToken();
   if (!token) {
@@ -114,6 +126,9 @@ export async function getCurrentSession() {
       revokedAt: null,
       expiresAt: {
         gt: new Date()
+      },
+      user: {
+        status: UserStatus.ACTIVE
       }
     },
     include: {

@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 const authenticate = vi.fn();
 const createSession = vi.fn();
 const revokeSessionByToken = vi.fn();
+const revokeSessionsByUserId = vi.fn();
 const createAuditEvent = vi.fn();
 const issueCsrfToken = vi.fn();
 const getRequestSessionToken = vi.fn();
@@ -14,7 +15,8 @@ const getRequestMeta = vi.fn();
 vi.mock("@/lib/auth", () => ({
   authenticate,
   createSession,
-  revokeSessionByToken
+  revokeSessionByToken,
+  revokeSessionsByUserId
 }));
 
 vi.mock("@/lib/audit", () => ({
@@ -44,6 +46,7 @@ describe("POST /api/auth/login", () => {
     authenticate.mockReset();
     createSession.mockReset();
     revokeSessionByToken.mockReset();
+    revokeSessionsByUserId.mockReset();
     createAuditEvent.mockReset();
     issueCsrfToken.mockReset();
     getRequestSessionToken.mockReset();
@@ -74,7 +77,7 @@ describe("POST /api/auth/login", () => {
 
     const response = await POST(request);
     expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toMatchObject({ error: "Invalid password" });
+    await expect(response.json()).resolves.toMatchObject({ error: "Invalid username or password" });
   });
 
   it("creates a session and audit event for valid credentials", async () => {

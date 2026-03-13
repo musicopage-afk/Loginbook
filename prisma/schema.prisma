@@ -83,6 +83,16 @@ model User {
   @@map("users")
 }
 
+model LoginThrottle {
+  key        String   @id
+  count      Int
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  @@index([expiresAt])
+  @@map("login_throttles")
+}
+
 model Session {
   id         String    @id @default(cuid())
   userId     String    @map("user_id")

@@ -2,7 +2,7 @@ import { AuditAction, EntityType, UserRole, UserStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createAuditEvent } from "@/lib/audit";
 import { ApiError } from "@/lib/api";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword, revokeSessionsByUserId } from "@/lib/auth";
 import { canManageAccounts } from "@/lib/rbac";
 import { sanitizeObject } from "@/lib/sanitize";
 
@@ -116,6 +116,10 @@ export async function updateUserStatus(
     }
   });
 
+  if (status !== UserStatus.ACTIVE) {
+    await revokeSessionsByUserId(targetUserId);
+  }
+
   await createAuditEvent({
     organizationId: context.organizationId,
     userId: context.userId,
@@ -182,6 +186,10 @@ export async function updateUserCredentials(
     }
   });
 
+  if (input.password) {
+    await revokeSessionsByUserId(targetUserId);
+  }
+
   await createAuditEvent({
     organizationId: context.organizationId,
     userId: context.userId,
@@ -217,11 +225,7 @@ export async function deleteUser(context: UserMutationContext, targetUserId: str
     throw new ApiError(404, "Account not found");
   }
 
-  await prisma.session.deleteMany({
-    where: {
-      userId: targetUserId
-    }
-  });
+  await revokeSessionsByUserId(targetUserId);
 
   const deleted = await prisma.user.update({
     where: {

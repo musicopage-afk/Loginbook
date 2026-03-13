@@ -11,18 +11,11 @@ export async function POST(request: NextRequest) {
   try {
     await enforceStateChangingRequest(request);
     const body = loginSchema.parse(await request.json());
-    assertRateLimit(`login:${body.username}:${request.headers.get("x-forwarded-for") ?? "local"}`);
+    await assertRateLimit(`login:${body.username}:${request.headers.get("x-forwarded-for") ?? "local"}`);
 
     const authResult = await authenticate(body.username, body.password);
     if (!authResult.ok) {
-      throw new ApiError(
-        401,
-        authResult.reason === "USERNAME_NOT_FOUND"
-          ? "Username not found"
-          : authResult.reason === "ACCOUNT_DISABLED"
-            ? "Account is disabled"
-            : "Invalid password"
-      );
+      throw new ApiError(401, "Invalid username or password");
     }
     const user = authResult.user;
 

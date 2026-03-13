@@ -5,6 +5,11 @@ import { listAuditEvents } from "@/lib/services/audit";
 import { listEntries } from "@/lib/services/entries";
 import { buildEntryWhere } from "@/lib/queries";
 
+function escapeCsvFormula(value: string | null | undefined) {
+  const normalized = String(value ?? "");
+  return /^[=+\-@]/.test(normalized) ? `'${normalized}` : normalized;
+}
+
 export async function exportLogbookCsv(input: {
   organizationId: string;
   logbookId: string;
@@ -16,12 +21,12 @@ export async function exportLogbookCsv(input: {
   const csv = stringify(
     entries.map((entry) => ({
       id: entry.id,
-      title: entry.title,
-      body: entry.body,
+      title: escapeCsvFormula(entry.title),
+      body: escapeCsvFormula(entry.body),
       status: entry.status,
       occurredAt: entry.occurredAt.toISOString(),
-      createdBy: entry.createdByUser.displayName,
-      tags: entry.tags.map((tag) => tag.tag.name).join("|")
+      createdBy: escapeCsvFormula(entry.createdByUser.displayName),
+      tags: escapeCsvFormula(entry.tags.map((tag) => tag.tag.name).join("|"))
     })),
     { header: true }
   );
@@ -52,11 +57,11 @@ export async function exportAuditCsv(input: {
       id: event.id,
       action: event.action,
       entityType: event.entityType,
-      entityId: event.entityId,
-      userId: event.userId,
+      entityId: escapeCsvFormula(event.entityId),
+      userId: escapeCsvFormula(event.userId),
       occurredAt: event.occurredAt.toISOString(),
-      ip: event.ip,
-      userAgent: event.userAgent
+      ip: escapeCsvFormula(event.ip),
+      userAgent: escapeCsvFormula(event.userAgent)
     })),
     { header: true }
   );
