@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 type NavItem = {
   href: string;
@@ -31,7 +32,18 @@ export function ShellSidebar({
   items: NavItem[];
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(true);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    setOpen(false);
+  }, [pathname]);
 
   return (
     <div className={`shell-layout ${open ? "is-sidebar-open" : "is-sidebar-closed"}`}>
