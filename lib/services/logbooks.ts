@@ -51,3 +51,51 @@ export async function createLogbook(input: {
 
   return logbook;
 }
+
+export async function deleteLogbook(input: {
+  organizationId: string;
+  userId: string;
+  role: UserRole;
+  logbookId: string;
+  ip?: string | null;
+  userAgent?: string | null;
+}) {
+  if (!canCreateLogbook(input.role)) {
+    throw new ApiError(403, "Only administrators can delete logbooks");
+  }
+
+  const existing = await prisma.logbook.findFirst({
+    where: {
+      id: input.logbookId,
+      organizationId: input.organizationId,
+      deletedAt: null
+    }
+  });
+
+  if (!existing) {
+    throw new ApiError(404, "Logbook not found");
+  }
+
+  const deleted = await prisma.logbook.update({
+    where: {
+      id: input.logbookId
+    },
+    data: {
+      deletedAt: new Date()
+    }
+  });
+
+  await createAuditEvent({
+    organizationId: input.organizationId,
+    userId: input.userId,
+    action: AuditAction.DELETE,
+    entityType: EntityType.LOGBOOK,
+    entityId: input.logbookId,
+    beforeJson: sanitizeObject(existing),
+    afterJson: sanitizeObject(deleted),
+    ip: input.ip,
+    userAgent: input.userAgent
+  });
+
+  return deleted;
+}

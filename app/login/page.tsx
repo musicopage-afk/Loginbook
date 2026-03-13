@@ -1,11 +1,11 @@
 import { AppShell } from "@/components/app-shell";
 import { LoginForm } from "@/components/login-form";
 import { getOidcConfig } from "@/lib/oidc";
-import { issueCsrfToken } from "@/lib/security";
+
+export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
   const oidc = getOidcConfig();
-  await issueCsrfToken();
 
   return (
     <AppShell>

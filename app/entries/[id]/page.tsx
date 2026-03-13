@@ -8,6 +8,8 @@ import { getEntry } from "@/lib/services/entries";
 import { prisma } from "@/lib/prisma";
 import { canApproveEntry, canCreateEntry } from "@/lib/rbac";
 
+export const dynamic = "force-dynamic";
+
 export default async function EntryDetailPage({
   params
 }: {

@@ -12,6 +12,9 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:reset": "tsx tests/e2e/reset.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
@@ -28,6 +31,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
+    "@playwright/test": "^1.58.2",
     "@types/argon2": "^0.14.1",
     "@types/node": "^22.13.11",
     "@types/react": "^19.0.10",

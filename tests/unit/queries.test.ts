@@ -41,4 +41,26 @@ describe("query builders", () => {
       entityType: "LOGBOOK"
     });
   });
+
+  it("drops empty string filters before building Prisma queries", () => {
+    const entryWhere = buildEntryWhere("org_1", "lb_1", {
+      author: "",
+      status: "",
+      tag: "",
+      q: ""
+    });
+    const auditWhere = buildAuditWhere("org_1", {
+      userId: "",
+      action: "",
+      entityType: ""
+    });
+
+    expect(entryWhere.createdByUserId).toBeUndefined();
+    expect(entryWhere.status).toBeUndefined();
+    expect(entryWhere.tags).toBeUndefined();
+    expect(entryWhere.OR).toBeUndefined();
+    expect(auditWhere.userId).toBeUndefined();
+    expect(auditWhere.action).toBeUndefined();
+    expect(auditWhere.entityType).toBeUndefined();
+  });
 });

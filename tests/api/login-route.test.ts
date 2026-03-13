@@ -55,7 +55,10 @@ describe("POST /api/auth/login", () => {
   });
 
   it("returns 401 for invalid credentials", async () => {
-    authenticate.mockResolvedValue(null);
+    authenticate.mockResolvedValue({
+      ok: false,
+      reason: "INVALID_PASSWORD"
+    });
     const { POST } = await import("@/app/api/auth/login/route");
     const request = new NextRequest("http://localhost:3000/api/auth/login", {
       method: "POST",
@@ -71,14 +74,18 @@ describe("POST /api/auth/login", () => {
 
     const response = await POST(request);
     expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({ error: "Invalid password" });
   });
 
   it("creates a session and audit event for valid credentials", async () => {
     authenticate.mockResolvedValue({
-      id: "user_1",
-      email: "admin@loginbook.local",
-      role: "ADMIN",
-      organizationId: "org_1"
+      ok: true,
+      user: {
+        id: "user_1",
+        email: "admin@loginbook.local",
+        role: "ADMIN",
+        organizationId: "org_1"
+      }
     });
     getRequestSessionToken.mockResolvedValue(null);
     createSession.mockResolvedValue({

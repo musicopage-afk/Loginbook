@@ -75,7 +75,7 @@ export function EntryForm({
 
     const payload = (await response.json()) as { error?: string; entry?: { id: string } };
     if (!response.ok || !payload.entry) {
-      setError(payload.error ?? "Unable to create entry");
+      setError(payload.error ?? "Could not create the entry");
       return;
     }
 

@@ -3,6 +3,8 @@ import { AppShell } from "@/components/app-shell";
 import { requirePageUser } from "@/lib/server-auth";
 import { listAuditEvents } from "@/lib/services/audit";
 
+export const dynamic = "force-dynamic";
+
 export default async function AuditPage({
   searchParams
 }: {

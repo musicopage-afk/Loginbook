@@ -20,20 +20,17 @@ RUN npm ci
 
 FROM deps AS builder
 
+ENV NODE_ENV=production
+
 COPY . .
 RUN npm run prisma:generate
 RUN npm run build
-
-FROM base AS prod-deps
-
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
 
 FROM base AS runner
 
 ENV PORT=3000
 
-COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma

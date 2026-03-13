@@ -3,7 +3,7 @@ import { MAX_UPLOAD_BYTES } from "@/lib/constants";
 
 export const loginSchema = z.object({
   email: z.string().email().max(254),
-  password: z.string().min(8).max(256)
+  password: z.string().min(8, "Password must be 8 characters or longer").max(256)
 });
 
 export const createLogbookSchema = z.object({

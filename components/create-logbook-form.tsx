@@ -26,7 +26,7 @@ export function CreateLogbookForm() {
 
     const payload = (await response.json()) as { error?: string };
     if (!response.ok) {
-      setError(payload.error ?? "Unable to create logbook");
+      setError(payload.error ?? "Could not create the logbook");
       return;
     }
 

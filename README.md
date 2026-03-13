@@ -97,5 +97,8 @@ Change these immediately outside local development.
 - Run typecheck: `npm run typecheck`
 - Run tests: `npm test`
 - Run coverage: `npm run test:coverage`
+- Reset deterministic E2E data: `npm run e2e:reset`
+- Run Playwright E2E: `npm run e2e`
+- Run Playwright headed: `npm run e2e:headed`
 
 The test suite covers password hashing, RBAC, CSRF/origin guard behavior, sanitisation, query building, entry workflow rules, export behavior, and API route handling for login, logout, logbook creation and approval.

@@ -13,10 +13,18 @@ export async function POST(request: NextRequest) {
     const body = loginSchema.parse(await request.json());
     assertRateLimit(`login:${body.email}:${request.headers.get("x-forwarded-for") ?? "local"}`);
 
-    const user = await authenticate(body.email, body.password);
-    if (!user) {
-      throw new ApiError(401, "Invalid credentials");
+    const authResult = await authenticate(body.email, body.password);
+    if (!authResult.ok) {
+      throw new ApiError(
+        401,
+        authResult.reason === "EMAIL_NOT_FOUND"
+          ? "Email address not found"
+          : authResult.reason === "ACCOUNT_DISABLED"
+            ? "Account is disabled"
+            : "Invalid password"
+      );
     }
+    const user = authResult.user;
 
     const existingToken = await getRequestSessionToken();
     if (existingToken) {

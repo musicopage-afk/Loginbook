@@ -11,6 +11,18 @@ import {
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 
+export type AuthenticationResult =
+  | {
+      ok: true;
+      user: Awaited<ReturnType<typeof prisma.user.findFirst>> extends infer T
+        ? NonNullable<T>
+        : never;
+    }
+  | {
+      ok: false;
+      reason: "EMAIL_NOT_FOUND" | "INVALID_PASSWORD" | "ACCOUNT_DISABLED";
+    };
+
 export async function hashPassword(password: string) {
   return argon2.hash(password, {
     type: argon2.argon2id,
@@ -27,21 +39,36 @@ export async function verifyPassword(password: string, passwordHash: string) {
 export async function authenticate(email: string, password: string) {
   const user = await prisma.user.findFirst({
     where: {
-      email: email.toLowerCase(),
-      status: UserStatus.ACTIVE
+      email: email.toLowerCase()
     }
   });
 
   if (!user) {
-    return null;
+    return {
+      ok: false,
+      reason: "EMAIL_NOT_FOUND"
+    } satisfies AuthenticationResult;
+  }
+
+  if (user.status !== UserStatus.ACTIVE) {
+    return {
+      ok: false,
+      reason: "ACCOUNT_DISABLED"
+    } satisfies AuthenticationResult;
   }
 
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
-    return null;
+    return {
+      ok: false,
+      reason: "INVALID_PASSWORD"
+    } satisfies AuthenticationResult;
   }
 
-  return user;
+  return {
+    ok: true,
+    user
+  } satisfies AuthenticationResult;
 }
 
 export async function createSession(userId: string) {

@@ -1,5 +1,9 @@
 import { Prisma } from "@prisma/client";
 
+function normalizeFilter(value?: string) {
+  return value && value.trim() ? value : undefined;
+}
+
 export function buildEntryWhere(
   organizationId: string,
   logbookId: string,
@@ -12,6 +16,11 @@ export function buildEntryWhere(
     q?: string;
   }
 ): Prisma.EntryWhereInput {
+  const author = normalizeFilter(filters.author);
+  const status = normalizeFilter(filters.status);
+  const tag = normalizeFilter(filters.tag);
+  const query = normalizeFilter(filters.q);
+
   return {
     logbookId,
     deletedAt: null,
@@ -25,21 +34,21 @@ export function buildEntryWhere(
             lte: filters.to ? new Date(filters.to) : undefined
           }
         : undefined,
-    createdByUserId: filters.author || undefined,
-    status: filters.status as never,
-    tags: filters.tag
+    createdByUserId: author,
+    status: status as never,
+    tags: tag
       ? {
           some: {
             tag: {
-              name: filters.tag
+              name: tag
             }
           }
         }
       : undefined,
-    OR: filters.q
+    OR: query
       ? [
-          { title: { contains: filters.q, mode: "insensitive" } },
-          { body: { contains: filters.q, mode: "insensitive" } }
+          { title: { contains: query, mode: "insensitive" } },
+          { body: { contains: query, mode: "insensitive" } }
         ]
       : undefined
   };
@@ -55,11 +64,15 @@ export function buildAuditWhere(
     to?: string;
   }
 ): Prisma.AuditEventWhereInput {
+  const userId = normalizeFilter(filters.userId);
+  const action = normalizeFilter(filters.action);
+  const entityType = normalizeFilter(filters.entityType);
+
   return {
     organizationId,
-    userId: filters.userId,
-    action: filters.action as never,
-    entityType: filters.entityType as never,
+    userId,
+    action: action as never,
+    entityType: entityType as never,
     occurredAt:
       filters.from || filters.to
         ? {

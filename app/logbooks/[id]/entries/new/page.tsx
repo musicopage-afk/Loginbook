@@ -3,6 +3,8 @@ import { AppShell } from "@/components/app-shell";
 import { EntryForm } from "@/components/entry-form";
 import { requirePageUser } from "@/lib/server-auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function CreateEntryPage({
   params
 }: {

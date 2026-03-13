@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { buildEntryWhere } from "@/lib/queries";
 import { listEntries } from "@/lib/services/entries";
 
+export const dynamic = "force-dynamic";
+
 export default async function LogbookDetailPage({
   params,
   searchParams

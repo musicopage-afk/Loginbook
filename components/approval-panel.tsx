@@ -22,7 +22,7 @@ export function ApprovalPanel({ entryId }: { entryId: string }) {
 
     const payload = (await response.json()) as { error?: string };
     if (!response.ok) {
-      setError(payload.error ?? "Unable to approve");
+      setError(payload.error ?? "Could not approve the entry");
       return;
     }
 
