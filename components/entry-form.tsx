@@ -137,7 +137,7 @@ export function EntryForm({
       return;
     }
 
-    router.push(`/entries/${result.entry.id}`);
+    router.push(`/logbooks/${logbookId}`);
     router.refresh();
   }
 
