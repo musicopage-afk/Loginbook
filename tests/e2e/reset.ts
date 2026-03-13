@@ -8,10 +8,10 @@ const prisma = new PrismaClient();
 
 export type E2EFixture = {
   organizationId: string;
-  adminEmail: string;
+  adminUsername: string;
   adminPassword: string;
   adminDisplayName: string;
-  approverEmail: string;
+  approverUsername: string;
   logbookName: string;
   seededEntryName: string;
 };
@@ -25,8 +25,8 @@ function createSuffix() {
 export async function resetE2EData(): Promise<E2EFixture> {
   const suffix = createSuffix();
   const organizationId = `e2e-org-${suffix}`;
-  const adminEmail = `e2e-admin+${suffix}@loginbook.local`;
-  const approverEmail = `e2e-approver+${suffix}@loginbook.local`;
+  const adminUsername = `e2e-admin-${suffix}`;
+  const approverUsername = `e2e-approver-${suffix}`;
   const logbookName = "Log Book";
   const seededEntryName = "Front Gate";
   const adminDisplayName = "E2E Admin";
@@ -42,7 +42,7 @@ export async function resetE2EData(): Promise<E2EFixture> {
   const admin = await prisma.user.create({
     data: {
       organizationId: organization.id,
-      email: adminEmail,
+      email: adminUsername,
       displayName: adminDisplayName,
       passwordHash,
       role: UserRole.ADMIN,
@@ -53,7 +53,7 @@ export async function resetE2EData(): Promise<E2EFixture> {
   const approver = await prisma.user.create({
     data: {
       organizationId: organization.id,
-      email: approverEmail,
+      email: approverUsername,
       displayName: "E2E Approver",
       passwordHash,
       role: UserRole.APPROVER,
@@ -86,7 +86,8 @@ export async function resetE2EData(): Promise<E2EFixture> {
       status: EntryStatus.SUBMITTED,
       structuredFieldsJson: {
         entryOrExit: "ENTRY",
-        authorisedBy: adminDisplayName
+        authorisedBy: adminDisplayName,
+        company: "Acme Operations"
       },
       tags: {
         create: {
@@ -132,10 +133,10 @@ export async function resetE2EData(): Promise<E2EFixture> {
 
   return {
     organizationId,
-    adminEmail,
+    adminUsername,
     adminPassword: ADMIN_PASSWORD,
     adminDisplayName,
-    approverEmail,
+    approverUsername,
     logbookName,
     seededEntryName
   };

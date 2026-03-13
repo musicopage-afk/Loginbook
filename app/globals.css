@@ -364,6 +364,27 @@ td {
   gap: 0.75rem;
 }
 
+.account-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.account-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.account-copy {
+  display: grid;
+  gap: 0.2rem;
+}
+
 .log-filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -565,6 +586,11 @@ td {
 
   .entry-row {
     grid-template-columns: 1fr;
+  }
+
+  .account-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .timestamp-text {

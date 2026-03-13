@@ -11,7 +11,7 @@ async function capture(page: Page, testInfo: TestInfo, name: string) {
 
 async function login(page: Page, fixture: E2EFixture) {
   await page.goto("/login");
-  await page.getByLabel("Email").fill(fixture.adminEmail);
+  await page.getByLabel("Username").fill(fixture.adminUsername);
   await page.getByLabel("Password").fill(fixture.adminPassword);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/logbooks\/[^/]+$/);
@@ -28,23 +28,28 @@ async function readDownload(download: Awaited<ReturnType<Page["waitForEvent"]>>)
 
 let fixture: E2EFixture;
 
-test.beforeEach(async () => {
+test.beforeEach(async ({ page, context }) => {
   fixture = await resetE2EData();
+  await context.clearCookies();
+  await page.addInitScript(() => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+  });
 });
 
-test("shows direct login errors for wrong password and unknown email", async ({ page }, testInfo) => {
+test("shows direct login errors for wrong password and unknown username", async ({ page }, testInfo) => {
   await page.goto("/login");
-  await page.getByLabel("Email").fill(fixture.adminEmail);
+  await page.getByLabel("Username").fill(fixture.adminUsername);
   await page.getByLabel("Password").fill("WrongPassword123!");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByText("Invalid password")).toBeVisible();
   await capture(page, testInfo, "invalid-password");
 
-  await page.getByLabel("Email").fill("missing@loginbook.local");
+  await page.getByLabel("Username").fill("missing-user");
   await page.getByLabel("Password").fill(fixture.adminPassword);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByText("Email address not found")).toBeVisible();
-  await capture(page, testInfo, "unknown-email");
+  await expect(page.getByText("Username not found")).toBeVisible();
+  await capture(page, testInfo, "unknown-username");
 });
 
 test("supports the core admin workflow end to end", async ({ page }, testInfo) => {
@@ -75,6 +80,7 @@ test("supports the core admin workflow end to end", async ({ page }, testInfo) =
   await page.getByRole("option", { name: "Exit" }).click();
   await page.getByLabel("Reason").fill(createdEntryBody);
   await page.getByLabel("Authorised by").fill(fixture.adminDisplayName);
+  await page.getByLabel("Company").fill("Northwind");
   await Promise.all([
     page.waitForResponse((response) => response.url().includes("/api/logbooks/") && response.status() === 201),
     page.getByRole("button", { name: "Create log" }).click()
@@ -85,6 +91,7 @@ test("supports the core admin workflow end to end", async ({ page }, testInfo) =
   await expect(page.getByText(`${createdEntryTitle} | Exit`)).toBeVisible();
   await expect(entryEmbed.getByText(createdEntryBody)).toBeVisible();
   await expect(entryEmbed.getByText(fixture.adminDisplayName)).toBeVisible();
+  await expect(entryEmbed.getByText("Northwind")).toBeVisible();
   await capture(page, testInfo, "entry-created");
 
   await page.locator(".topbar").getByRole("link", { name: "Log Book" }).click();

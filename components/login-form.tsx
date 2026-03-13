@@ -6,13 +6,13 @@ import { getCsrfTokenFromDocument } from "@/lib/client-security";
 
 export function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   const resetFields = useCallback(() => {
-    setEmail("");
+    setUsername("");
     setPassword("");
     setError("");
     setLoading(false);
@@ -68,7 +68,7 @@ export function LoginForm() {
         "x-csrf-token": csrfToken
       },
       body: JSON.stringify({
-        email,
+        username,
         password
       })
     });
@@ -89,14 +89,14 @@ export function LoginForm() {
   return (
     <form onSubmit={onSubmit} autoComplete="off">
       <label>
-        Email
+        Username
         <input
-          type="email"
-          name="email"
+          type="text"
+          name="username"
           autoComplete="off"
           required
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
         />
       </label>
       <label>

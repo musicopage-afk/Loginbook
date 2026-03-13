@@ -12,6 +12,7 @@ type EntryFormValues = {
   entryOrExit: LogDirection;
   reason: string;
   authorisedBy: string;
+  company: string;
   occurredAtIso: string;
 };
 
@@ -33,6 +34,7 @@ export function EntryForm({
   const [queued, setQueued] = useState(false);
   const [entryOrExit, setEntryOrExit] = useState<LogDirection>(initialValues?.entryOrExit ?? "ENTRY");
   const [name, setName] = useState(initialValues?.name ?? "");
+  const [company, setCompany] = useState(initialValues?.company ?? "");
   const isEditing = Boolean(entryId);
 
   useEffect(() => {
@@ -57,6 +59,7 @@ export function EntryForm({
       structuredFieldsJson: {
         entryOrExit: String(form.get("entryOrExit") ?? "ENTRY"),
         authorisedBy: String(form.get("authorisedBy") ?? ""),
+        company: String(form.get("company") ?? ""),
         timestampGmt: occurredAt
       },
       supersedesEntryId
@@ -81,6 +84,7 @@ export function EntryForm({
       structuredFieldsJson: {
         entryOrExit: String(form.get("entryOrExit") ?? "ENTRY"),
         authorisedBy: String(form.get("authorisedBy") ?? ""),
+        company: String(form.get("company") ?? ""),
         timestampGmt: occurredAt
       },
       supersedesEntryId
@@ -144,6 +148,16 @@ export function EntryForm({
       <label>
         Authorised by
         <input name="authorisedBy" required maxLength={120} defaultValue={initialValues?.authorisedBy ?? ""} />
+      </label>
+      <label>
+        Company
+        <input
+          name="company"
+          required
+          maxLength={120}
+          value={company}
+          onChange={(event) => setCompany(event.target.value)}
+        />
       </label>
       {queued ? <div className="muted">Offline: log queued locally and will sync when online.</div> : null}
       {error ? <div className="danger">{error}</div> : null}

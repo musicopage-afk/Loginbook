@@ -2,7 +2,7 @@ import Link from "next/link";
 import { User } from "@prisma/client";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { LogoutButton } from "@/components/logout-button";
-import { canViewAudit } from "@/lib/rbac";
+import { canManageAccounts, canViewAudit } from "@/lib/rbac";
 
 export function AppShell({
   user,
@@ -21,6 +21,7 @@ export function AppShell({
         <div className="nav">
           <Link href="/logbooks">Log Book</Link>
           {user && canViewAudit(user.role) ? <Link href="/audit">Audit</Link> : null}
+          {user && canManageAccounts(user.role) ? <Link href="/accounts">Accounts</Link> : null}
           {user ? <span className="pill">{user.displayName} / {user.role}</span> : null}
           {user ? <LogoutButton /> : <Link href="/login">Login</Link>}
         </div>

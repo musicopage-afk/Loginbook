@@ -36,3 +36,7 @@ export function canCreateLogbook(role: UserRole) {
 export function canExportAudit(role: UserRole) {
   return canViewAudit(role);
 }
+
+export function canManageAccounts(role: UserRole) {
+  return role === UserRole.ADMIN;
+}

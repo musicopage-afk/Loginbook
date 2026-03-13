@@ -40,12 +40,17 @@ export function getLogFields(entry: EntryLike) {
     typeof structured.authorisedBy === "string" && structured.authorisedBy.trim()
       ? structured.authorisedBy
       : "Not provided";
+  const company =
+    typeof structured.company === "string" && structured.company.trim()
+      ? structured.company
+      : "Not provided";
 
   return {
     name: entry.title,
     entryOrExit,
     reason: entry.body,
     authorisedBy,
+    company,
     timestamp: formatGmtTimestamp(entry.createdAt),
     occurredAtIso: entry.occurredAt.toISOString()
   };

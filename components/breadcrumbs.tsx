@@ -39,6 +39,13 @@ function getBreadcrumbs(pathname: string): Crumb[] {
     ];
   }
 
+  if (pathname === "/accounts") {
+    return [
+      { href: "/", label: "Home" },
+      { label: "Accounts", current: true }
+    ];
+  }
+
   if (pathname === "/logbooks" || /^\/logbooks\/[^/]+$/.test(pathname)) {
     return [
       { href: "/", label: "Home" },

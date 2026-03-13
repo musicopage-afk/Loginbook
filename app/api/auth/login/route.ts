@@ -11,14 +11,14 @@ export async function POST(request: NextRequest) {
   try {
     await enforceStateChangingRequest(request);
     const body = loginSchema.parse(await request.json());
-    assertRateLimit(`login:${body.email}:${request.headers.get("x-forwarded-for") ?? "local"}`);
+    assertRateLimit(`login:${body.username}:${request.headers.get("x-forwarded-for") ?? "local"}`);
 
-    const authResult = await authenticate(body.email, body.password);
+    const authResult = await authenticate(body.username, body.password);
     if (!authResult.ok) {
       throw new ApiError(
         401,
-        authResult.reason === "EMAIL_NOT_FOUND"
-          ? "Email address not found"
+        authResult.reason === "USERNAME_NOT_FOUND"
+          ? "Username not found"
           : authResult.reason === "ACCOUNT_DISABLED"
             ? "Account is disabled"
             : "Invalid password"
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     return jsonOk({
       user: {
         id: user.id,
-        email: user.email,
+        username: user.email,
         role: user.role
       }
     });

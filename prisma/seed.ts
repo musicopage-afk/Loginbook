@@ -20,13 +20,13 @@ async function main() {
     where: {
       organizationId_email: {
         organizationId: organization.id,
-        email: "admin@loginbook.local"
+        email: "admin"
       }
     },
     update: {},
     create: {
       organizationId: organization.id,
-      email: "admin@loginbook.local",
+      email: "admin",
       displayName: "Admin User",
       passwordHash,
       role: UserRole.ADMIN
@@ -37,13 +37,13 @@ async function main() {
     where: {
       organizationId_email: {
         organizationId: organization.id,
-        email: "approver@loginbook.local"
+        email: "approver"
       }
     },
     update: {},
     create: {
       organizationId: organization.id,
-      email: "approver@loginbook.local",
+      email: "approver",
       displayName: "Approver User",
       passwordHash,
       role: UserRole.APPROVER
@@ -89,7 +89,8 @@ async function main() {
       status: "SUBMITTED",
       structuredFieldsJson: {
         entryOrExit: "ENTRY",
-        authorisedBy: "Admin User"
+        authorisedBy: "Admin User",
+        company: "Acme Operations"
       },
       tags: {
         create: {

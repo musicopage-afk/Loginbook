@@ -20,7 +20,7 @@ export type AuthenticationResult =
     }
   | {
       ok: false;
-      reason: "EMAIL_NOT_FOUND" | "INVALID_PASSWORD" | "ACCOUNT_DISABLED";
+      reason: "USERNAME_NOT_FOUND" | "INVALID_PASSWORD" | "ACCOUNT_DISABLED";
     };
 
 export async function hashPassword(password: string) {
@@ -36,17 +36,17 @@ export async function verifyPassword(password: string, passwordHash: string) {
   return argon2.verify(passwordHash, password);
 }
 
-export async function authenticate(email: string, password: string) {
+export async function authenticate(username: string, password: string) {
   const user = await prisma.user.findFirst({
     where: {
-      email: email.toLowerCase()
+      email: username.trim().toLowerCase()
     }
   });
 
   if (!user) {
     return {
       ok: false,
-      reason: "EMAIL_NOT_FOUND"
+      reason: "USERNAME_NOT_FOUND"
     } satisfies AuthenticationResult;
   }
 

@@ -39,6 +39,7 @@ export default async function EditEntryPage({
             entryOrExit: fields.entryOrExit,
             reason: fields.reason,
             authorisedBy: fields.authorisedBy,
+            company: fields.company,
             occurredAtIso: fields.occurredAtIso
           }}
           activeNameSuggestions={activeNameSuggestions}

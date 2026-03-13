@@ -55,6 +55,10 @@ export default async function EntryDetailPage({
                 <span>{fields.authorisedBy}</span>
               </div>
               <div className="embed-field">
+                <span className="embed-label">Company</span>
+                <span>{fields.company}</span>
+              </div>
+              <div className="embed-field">
                 <span className="embed-label">Timestamp</span>
                 <span className="timestamp-text">{fields.timestamp}</span>
               </div>

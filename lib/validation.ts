@@ -2,7 +2,7 @@ import { z } from "zod";
 import { MAX_UPLOAD_BYTES } from "@/lib/constants";
 
 export const loginSchema = z.object({
-  email: z.string().email().max(254),
+  username: z.string().min(3).max(60),
   password: z.string().min(8, "Password must be 8 characters or longer").max(256)
 });
 
@@ -27,6 +27,17 @@ export const createEntrySchema = z.object({
   tags: z.array(z.string().min(1).max(60)).max(20).default([]),
   structuredFieldsJson: z.record(z.any()).default({}),
   supersedesEntryId: z.string().optional()
+});
+
+export const createUserSchema = z.object({
+  username: z.string().min(3).max(60),
+  displayName: z.string().min(2).max(120),
+  password: z.string().min(8, "Password must be 8 characters or longer").max(256),
+  role: z.enum(["READER", "CONTRIBUTOR", "EDITOR", "APPROVER", "AUDITOR", "ADMIN"])
+});
+
+export const updateUserStatusSchema = z.object({
+  status: z.enum(["ACTIVE", "DISABLED"])
 });
 
 export const approveEntrySchema = z.object({

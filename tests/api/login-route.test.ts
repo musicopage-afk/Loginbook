@@ -67,7 +67,7 @@ describe("POST /api/auth/login", () => {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        email: "nobody@example.com",
+        username: "nobody",
         password: "WrongPass123!"
       })
     });
@@ -82,7 +82,7 @@ describe("POST /api/auth/login", () => {
       ok: true,
       user: {
         id: "user_1",
-        email: "admin@loginbook.local",
+        email: "admin",
         role: "ADMIN",
         organizationId: "org_1"
       }
@@ -101,7 +101,7 @@ describe("POST /api/auth/login", () => {
         "user-agent": "vitest"
       },
       body: JSON.stringify({
-        email: "admin@loginbook.local",
+        username: "admin",
         password: "ChangeMe123!"
       })
     });
