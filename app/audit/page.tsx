@@ -83,7 +83,6 @@ export default async function AuditPage({
       <div className="grid two">
         <section className="card">
           <h1>Audit events</h1>
-          <a className="button" href="/api/export/audit.csv">Export audit CSV</a>
         </section>
         <section className="card">
           <h2>Filters</h2>

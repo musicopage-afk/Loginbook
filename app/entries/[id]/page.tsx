@@ -1,12 +1,9 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
-import { ApprovalPanel } from "@/components/approval-panel";
-import { EntryForm } from "@/components/entry-form";
 import { getLogFields } from "@/lib/entry-presentation";
 import { requirePageUser } from "@/lib/server-auth";
 import { getEntry } from "@/lib/services/entries";
-import { canApproveEntry, canCreateEntry } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -64,25 +61,10 @@ export default async function EntryDetailPage({
               </div>
             </div>
           </div>
-          {entry.status === "APPROVED" && canCreateEntry(user.role) ? (
-            <div className="card">
-              <h3>Supersede approved log</h3>
-              <EntryForm logbookId={entry.logbookId} supersedesEntryId={entry.id} />
-            </div>
-          ) : null}
         </section>
         <section className="card">
-          <h2>Approvals</h2>
-          {entry.approvedAt ? (
-            <div className="stack">
-              <div>Approved at {entry.approvedAt.toISOString()}</div>
-              <div>Approved by {entry.approvedByUser?.displayName ?? "Unknown"}</div>
-            </div>
-          ) : canApproveEntry(user.role) ? (
-            <ApprovalPanel entryId={entry.id} />
-          ) : (
-            <div className="empty">Only approvers can lock a log.</div>
-          )}
+          <h2>Record links</h2>
+          <div className="empty">Logs are saved immediately and do not need approval.</div>
           {entry.supersedesEntry ? (
             <div className="stack">
               <strong>Supersedes</strong>

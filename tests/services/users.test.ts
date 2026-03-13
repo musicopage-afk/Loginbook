@@ -5,15 +5,14 @@ const createAuditEvent = vi.fn();
 const hashPassword = vi.fn();
 
 const prisma = {
-  entry: {
-    findFirst: vi.fn()
+  session: {
+    deleteMany: vi.fn()
   },
   user: {
     findMany: vi.fn(),
     findFirst: vi.fn(),
     create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn()
+    update: vi.fn()
   }
 };
 
@@ -35,11 +34,10 @@ describe("user services", () => {
     createAuditEvent.mockReset();
     hashPassword.mockReset();
     prisma.user.findMany.mockReset();
-    prisma.entry.findFirst.mockReset();
+    prisma.session.deleteMany.mockReset();
     prisma.user.findFirst.mockReset();
     prisma.user.create.mockReset();
     prisma.user.update.mockReset();
-    prisma.user.delete.mockReset();
   });
 
   it("creates an account without needing a display name", async () => {
@@ -182,7 +180,7 @@ describe("user services", () => {
     );
   });
 
-  it("deletes an unreferenced managed account", async () => {
+  it("tombstones a managed account so it is removed from the visible account list", async () => {
     const { deleteUser } = await import("@/lib/services/users");
     prisma.user.findFirst.mockResolvedValue({
       id: "user_2",
@@ -191,10 +189,13 @@ describe("user services", () => {
       role: UserRole.EDITOR,
       displayName: "EDITOR User"
     });
-    prisma.entry.findFirst.mockResolvedValue(null);
-    prisma.user.delete.mockResolvedValue({
+    prisma.session.deleteMany.mockResolvedValue({ count: 1 });
+    prisma.user.update.mockResolvedValue({
       id: "user_2",
-      email: "guard-two"
+      email: "deleted-account::user_2",
+      displayName: "Deleted Account",
+      role: UserRole.EDITOR,
+      status: UserStatus.DISABLED
     });
 
     const result = await deleteUser(
@@ -207,33 +208,20 @@ describe("user services", () => {
     );
 
     expect(result.id).toBe("user_2");
-    expect(prisma.user.delete).toHaveBeenCalledWith({
+    expect(prisma.session.deleteMany).toHaveBeenCalledWith({
       where: {
-        id: "user_2"
+        userId: "user_2"
       }
     });
-  });
-
-  it("blocks deletion when an account is referenced by log history", async () => {
-    const { deleteUser } = await import("@/lib/services/users");
-    prisma.user.findFirst.mockResolvedValue({
-      id: "user_2",
-      organizationId: "org_1",
-      email: "guard-two",
-      role: UserRole.EDITOR,
-      displayName: "EDITOR User"
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: {
+        id: "user_2"
+      },
+      data: {
+        email: "deleted-account::user_2",
+        displayName: "Deleted Account",
+        status: UserStatus.DISABLED
+      }
     });
-    prisma.entry.findFirst.mockResolvedValue({ id: "entry_1" });
-
-    await expect(
-      deleteUser(
-        {
-          organizationId: "org_1",
-          userId: "admin_1",
-          role: UserRole.ADMIN
-        },
-        "user_2"
-      )
-    ).rejects.toMatchObject({ status: 409 });
   });
 });

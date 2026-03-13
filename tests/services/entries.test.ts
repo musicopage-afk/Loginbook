@@ -184,7 +184,7 @@ describe("entry services", () => {
     ).rejects.toMatchObject({ status: 413 });
   });
 
-  it("blocks updates to approved entries", async () => {
+  it("allows updates to previously approved entries", async () => {
     const { updateEntry } = await import("@/lib/services/entries");
 
     tx.entry.findUnique.mockResolvedValue({
@@ -195,23 +195,30 @@ describe("entry services", () => {
       }
     });
 
-    await expect(
-      updateEntry(
-        {
-          organizationId: "org_1",
-          userId: "user_1",
-          role: UserRole.EDITOR
-        },
-        "entry_1",
-        {
-          title: "Updated",
-          body: "Body",
-          occurredAt: "2026-03-13T10:00:00.000Z",
-          tags: [],
-          structuredFieldsJson: {}
-        }
-      )
-    ).rejects.toMatchObject({ status: 409 });
+    tx.entry.update.mockResolvedValue({
+      id: "entry_1",
+      status: EntryStatus.APPROVED,
+      title: "Updated"
+    });
+    tx.tag.findMany.mockResolvedValue([]);
+
+    const result = await updateEntry(
+      {
+        organizationId: "org_1",
+        userId: "user_1",
+        role: UserRole.EDITOR
+      },
+      "entry_1",
+      {
+        title: "Updated",
+        body: "Body",
+        occurredAt: "2026-03-13T10:00:00.000Z",
+        tags: [],
+        structuredFieldsJson: {}
+      }
+    );
+
+    expect(result.title).toBe("Updated");
   });
 
   it("creates exit entries with the past tag and inactivates matching active logs", async () => {

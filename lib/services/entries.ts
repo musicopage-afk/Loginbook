@@ -348,10 +348,6 @@ export async function updateEntry(
       throw new ApiError(404, "Entry not found");
     }
 
-    if (existing.status === EntryStatus.APPROVED) {
-      throw new ApiError(409, "Approved entries are locked. Create a superseding entry instead.");
-    }
-
     const normalizedTags = withLifecycleTags(input.tags, input.structuredFieldsJson);
     const updated = await tx.entry.update({
       where: { id: entryId },

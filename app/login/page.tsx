@@ -10,7 +10,7 @@ export default async function LoginPage() {
         <section className="card hero">
           <h1>Operational log book with durable history</h1>
           <p className="muted">
-            Record entries, approvals and exports with tenant isolation, append-only audit events and
+            Record entries and exports with tenant isolation, append-only audit events and
             server-enforced roles.
           </p>
           <div className="stack">

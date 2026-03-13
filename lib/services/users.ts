@@ -6,6 +6,8 @@ import { hashPassword } from "@/lib/auth";
 import { canManageAccounts } from "@/lib/rbac";
 import { sanitizeObject } from "@/lib/sanitize";
 
+const DELETED_ACCOUNT_PREFIX = "deleted-account::";
+
 type UserMutationContext = {
   organizationId: string;
   userId: string;
@@ -17,7 +19,12 @@ type UserMutationContext = {
 export async function listUsers(organizationId: string) {
   return prisma.user.findMany({
     where: {
-      organizationId
+      organizationId,
+      email: {
+        not: {
+          startsWith: DELETED_ACCOUNT_PREFIX
+        }
+      }
     },
     orderBy: [
       { status: "asc" },
@@ -210,22 +217,20 @@ export async function deleteUser(context: UserMutationContext, targetUserId: str
     throw new ApiError(404, "Account not found");
   }
 
-  const referencedEntry = await prisma.entry.findFirst({
+  await prisma.session.deleteMany({
     where: {
-      OR: [{ createdByUserId: targetUserId }, { approvedByUserId: targetUserId }]
-    },
-    select: {
-      id: true
+      userId: targetUserId
     }
   });
 
-  if (referencedEntry) {
-    throw new ApiError(409, "This account cannot be deleted because it is referenced by existing log records");
-  }
-
-  const deleted = await prisma.user.delete({
+  const deleted = await prisma.user.update({
     where: {
       id: targetUserId
+    },
+    data: {
+      email: `${DELETED_ACCOUNT_PREFIX}${existing.id}`,
+      displayName: "Deleted Account",
+      status: UserStatus.DISABLED
     }
   });
 
@@ -236,6 +241,7 @@ export async function deleteUser(context: UserMutationContext, targetUserId: str
     entityType: EntityType.USER,
     entityId: deleted.id,
     beforeJson: sanitizeObject(existing),
+    afterJson: sanitizeObject(deleted),
     ip: context.ip,
     userAgent: context.userAgent
   });
