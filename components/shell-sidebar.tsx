@@ -1,15 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { MouseEvent, useEffect, useRef, useState } from "react";
 
 type NavItem = {
   href: string;
   label: string;
 };
-
-const NAV_TRANSITION_MS = 250;
 
 function HomeIcon() {
   return (
@@ -45,21 +43,9 @@ export function ShellSidebar({
   items: NavItem[];
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [transitionStage, setTransitionStage] = useState<"idle" | "out" | "in">("idle");
-  const [pendingHref, setPendingHref] = useState<string | null>(null);
   const isFirstRender = useRef(true);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -68,30 +54,15 @@ export function ShellSidebar({
     }
 
     setOpen(false);
-    if (!pendingHref) {
-      return;
-    }
-
-    setTransitionStage("in");
-    timeoutRef.current = setTimeout(() => {
-      setTransitionStage("idle");
-      setPendingHref(null);
-    }, NAV_TRANSITION_MS);
-  }, [pathname, pendingHref]);
+  }, [pathname]);
 
   function handleNavigate(event: MouseEvent<HTMLAnchorElement>, href: string) {
-    if (href === pathname || pendingHref) {
+    if (href === pathname) {
       setOpen(false);
       return;
     }
 
-    event.preventDefault();
     setOpen(false);
-    setPendingHref(href);
-    setTransitionStage("out");
-    timeoutRef.current = setTimeout(() => {
-      router.push(href);
-    }, NAV_TRANSITION_MS);
   }
 
   return (
@@ -124,7 +95,7 @@ export function ShellSidebar({
             <MenuIcon />
           </button>
         ) : null}
-        <div className={`shell-content ${open ? "is-blurred" : ""} is-transition-${transitionStage}`}>{children}</div>
+        <div className={`shell-content ${open ? "is-blurred" : ""}`}>{children}</div>
       </div>
     </div>
   );

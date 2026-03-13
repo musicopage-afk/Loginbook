@@ -215,18 +215,11 @@ form,
 }
 
 .shell-content {
-  transition: filter 250ms ease, opacity 250ms ease, transform 250ms ease;
+  transition: filter 200ms ease;
 }
 
 .shell-content.is-blurred {
   filter: blur(1.5px);
-}
-
-.shell-content.is-transition-out,
-.shell-content.is-transition-in {
-  opacity: 0.72;
-  filter: blur(3px);
-  transform: translateY(4px);
 }
 
 .shell-backdrop {
