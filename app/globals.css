@@ -162,7 +162,6 @@ form,
   background: color-mix(in srgb, var(--accent) 78%, #2f68ff);
   color: #fff;
   font: 800 1rem var(--font-ui);
-  box-shadow: 0 18px 34px rgba(47, 104, 255, 0.22);
   transition: transform 180ms ease, filter 180ms ease;
 }
 
