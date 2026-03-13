@@ -8,9 +8,11 @@ import { canManageAccounts, canViewAudit } from "@/lib/rbac";
 
 export function AppShell({
   user,
+  loggedOutAction = "login",
   children
 }: {
   user?: Pick<User, "displayName" | "role">;
+  loggedOutAction?: "login" | "home";
   children: React.ReactNode;
 }) {
   const roleLabel = user ? `${user.role.slice(0, 1)}${user.role.slice(1).toLowerCase()} User` : null;
@@ -31,7 +33,15 @@ export function AppShell({
           {roleLabel ? <div className="topbar-user-pill"><span className="pill">{roleLabel}</span></div> : null}
         </div>
         <div className="topbar-actions">
-          {user ? <LogoutButton /> : <Link className="button topbar-button" href="/login">Login</Link>}
+          {user ? (
+            <LogoutButton />
+          ) : loggedOutAction === "home" ? (
+            <Link className="shell-home-link topbar-home-link" href="/">
+              Home
+            </Link>
+          ) : (
+            <Link className="button topbar-button" href="/login">Login</Link>
+          )}
         </div>
       </div>
       <Breadcrumbs />

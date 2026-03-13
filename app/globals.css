@@ -177,6 +177,11 @@ form,
   flex: 0 0 auto;
 }
 
+.topbar-home-link {
+  min-height: 2.85rem;
+  padding-inline: 1.2rem;
+}
+
 .shell-sidebar-link {
   display: flex;
   align-items: center;

@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
   return (
-    <AppShell>
+    <AppShell loggedOutAction="home">
       <div className="grid two">
         <section className="card hero">
           <h1>Operational log book with durable history</h1>
