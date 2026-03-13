@@ -9,6 +9,17 @@ type NavItem = {
   label: string;
 };
 
+function HomeIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+      <path
+        d="M4 10.5 12 4l8 6.5v8a1.5 1.5 0 0 1-1.5 1.5h-3.5a1 1 0 0 1-1-1V15a2 2 0 0 0-4 0v4a1 1 0 0 1-1 1H5.5A1.5 1.5 0 0 1 4 18.5z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 function MenuIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
@@ -94,6 +105,10 @@ export function ShellSidebar({
           ) : null}
         </div>
         <nav className="shell-sidebar-nav">
+          <Link className="shell-home-link" href="/" onClick={(event) => handleNavigate(event, "/")}>
+            <HomeIcon />
+            <span>Home</span>
+          </Link>
           {items.map((item) => (
             <Link key={item.href} className="shell-sidebar-link" href={item.href} onClick={(event) => handleNavigate(event, item.href)}>
               {item.label}
