@@ -144,17 +144,6 @@ export function EntryForm({
   return (
     <form className="entry-form" onSubmit={onSubmit}>
       <label>
-        Name
-        <input
-          name="name"
-          required
-          maxLength={200}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          list={activeNameSuggestions.length > 0 ? "active-log-names" : undefined}
-        />
-      </label>
-      <label>
         Entry or Exit
         <AnimatedSelect
           name="entryOrExit"
@@ -167,6 +156,28 @@ export function EntryForm({
             { value: "EXIT", label: "Exit" }
           ]}
         />
+      </label>
+      <label>
+        Name
+        {isExit && activeNameSuggestions.length > 0 ? (
+          <select name="name" required value={name} onChange={(event) => setName(event.target.value)}>
+            <option value="">Select a person currently in the building</option>
+            {activeNameSuggestions.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            name="name"
+            required
+            maxLength={200}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            list={!isExit && activeNameSuggestions.length > 0 ? "active-log-names" : undefined}
+          />
+        )}
       </label>
       {isExit ? null : (
         <>
@@ -192,7 +203,7 @@ export function EntryForm({
       )}
       {queued ? <div className="muted">Offline: log queued locally and will sync when online.</div> : null}
       {error ? <div className="danger">{error}</div> : null}
-      {activeNameSuggestions.length > 0 ? (
+      {!isExit && activeNameSuggestions.length > 0 ? (
         <datalist id="active-log-names">
           {activeNameSuggestions.map((item) => (
             <option key={item} value={item} />
