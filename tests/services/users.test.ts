@@ -86,4 +86,49 @@ describe("user services", () => {
       )
     ).rejects.toMatchObject({ status: 409 });
   });
+
+  it("updates a managed account username and password", async () => {
+    const { updateUserCredentials } = await import("@/lib/services/users");
+    hashPassword.mockResolvedValue("new-hash");
+    prisma.user.findFirst
+      .mockResolvedValueOnce({
+        id: "user_2",
+        organizationId: "org_1",
+        email: "guard-one",
+        role: UserRole.CONTRIBUTOR,
+        displayName: "CONTRIBUTOR User"
+      })
+      .mockResolvedValueOnce(null);
+    prisma.user.update.mockResolvedValue({
+      id: "user_2",
+      email: "guard-two",
+      role: UserRole.EDITOR,
+      status: UserStatus.ACTIVE
+    });
+
+    const result = await updateUserCredentials(
+      {
+        organizationId: "org_1",
+        userId: "admin_1",
+        role: UserRole.ADMIN
+      },
+      "user_2",
+      {
+        username: "guard-two",
+        password: "NewPassword123!",
+        role: UserRole.EDITOR
+      }
+    );
+
+    expect(result.email).toBe("guard-two");
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          email: "guard-two",
+          passwordHash: "new-hash",
+          role: UserRole.EDITOR
+        })
+      })
+    );
+  });
 });

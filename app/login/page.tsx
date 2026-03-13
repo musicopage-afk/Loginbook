@@ -1,12 +1,9 @@
 import { AppShell } from "@/components/app-shell";
 import { LoginForm } from "@/components/login-form";
-import { getOidcConfig } from "@/lib/oidc";
 
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
-  const oidc = getOidcConfig();
-
   return (
     <AppShell>
       <div className="grid two">
@@ -19,16 +16,11 @@ export default async function LoginPage() {
           <div className="stack">
             <span className="pill">Cookie sessions + CSRF protection</span>
             <span className="pill">Argon2 password hashing</span>
-            <span className="pill">OIDC configuration stub included</span>
           </div>
         </section>
         <section className="card">
           <h2>Sign in</h2>
           <LoginForm />
-          <div className="muted">
-            Enterprise SSO
-            {oidc.enabled ? " is configured in environment variables." : " stub is present; set OIDC env vars to enable."}
-          </div>
         </section>
       </div>
     </AppShell>

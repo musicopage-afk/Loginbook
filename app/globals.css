@@ -406,6 +406,12 @@ td {
   gap: 0.2rem;
 }
 
+.account-edit-form {
+  display: grid;
+  gap: 0.6rem;
+  width: min(420px, 100%);
+}
+
 .account-row:hover,
 .audit-item:hover,
 .entry-row:hover {

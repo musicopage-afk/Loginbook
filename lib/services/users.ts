@@ -123,3 +123,73 @@ export async function updateUserStatus(
 
   return updated;
 }
+
+export async function updateUserCredentials(
+  context: UserMutationContext,
+  targetUserId: string,
+  input: {
+    username: string;
+    password?: string;
+    role: UserRole;
+  }
+) {
+  if (!canManageAccounts(context.role)) {
+    throw new ApiError(403, "Only administrators can manage accounts");
+  }
+
+  if (context.userId === targetUserId) {
+    throw new ApiError(409, "You cannot manage your own account");
+  }
+
+  const existing = await prisma.user.findFirst({
+    where: {
+      id: targetUserId,
+      organizationId: context.organizationId
+    }
+  });
+
+  if (!existing) {
+    throw new ApiError(404, "Account not found");
+  }
+
+  const username = input.username.trim().toLowerCase();
+  const duplicate = await prisma.user.findFirst({
+    where: {
+      organizationId: context.organizationId,
+      email: username,
+      id: {
+        not: targetUserId
+      }
+    }
+  });
+
+  if (duplicate) {
+    throw new ApiError(409, "Username is already in use");
+  }
+
+  const updated = await prisma.user.update({
+    where: {
+      id: targetUserId
+    },
+    data: {
+      email: username,
+      role: input.role,
+      displayName: `${input.role} User`,
+      ...(input.password ? { passwordHash: await hashPassword(input.password) } : {})
+    }
+  });
+
+  await createAuditEvent({
+    organizationId: context.organizationId,
+    userId: context.userId,
+    action: AuditAction.UPDATE,
+    entityType: EntityType.USER,
+    entityId: updated.id,
+    beforeJson: sanitizeObject(existing),
+    afterJson: sanitizeObject(updated),
+    ip: context.ip,
+    userAgent: context.userAgent
+  });
+
+  return updated;
+}

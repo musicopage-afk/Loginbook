@@ -23,6 +23,10 @@ export function AccountManagement({
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editingUsername, setEditingUsername] = useState("");
+  const [editingPassword, setEditingPassword] = useState("");
+  const [editingRole, setEditingRole] = useState<(typeof roleOptions)[number]>("CONTRIBUTOR");
 
   async function onCreate(formData: FormData) {
     setError("");
@@ -73,6 +77,40 @@ export function AccountManagement({
     router.refresh();
   }
 
+  function startEdit(user: ManagedUser) {
+    setError("");
+    setEditingUserId(user.id);
+    setEditingUsername(user.username);
+    setEditingPassword("");
+    setEditingRole(user.role as (typeof roleOptions)[number]);
+  }
+
+  async function saveEdit(id: string) {
+    setError("");
+    const response = await fetch(`/api/users/${id}`, {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+        "x-csrf-token": getCsrfTokenFromDocument()
+      },
+      body: JSON.stringify({
+        username: editingUsername,
+        password: editingPassword || undefined,
+        role: editingRole
+      })
+    });
+
+    const payload = (await response.json()) as { error?: string };
+    if (!response.ok) {
+      setError(payload.error ?? "Could not update account");
+      return;
+    }
+
+    setEditingUserId(null);
+    setEditingPassword("");
+    router.refresh();
+  }
+
   return (
     <div className="grid two">
       <section className="card">
@@ -111,19 +149,63 @@ export function AccountManagement({
           {users.map((user) => (
             <div key={user.id} className="account-row">
               <div className="account-copy">
-                <strong>{user.username}</strong>
-                <span className="muted">{user.role} / {user.status}</span>
+                {editingUserId === user.id ? (
+                  <div className="account-edit-form">
+                    <label>
+                      Username
+                      <input value={editingUsername} onChange={(event) => setEditingUsername(event.target.value)} />
+                    </label>
+                    <label>
+                      New password
+                      <input
+                        type="password"
+                        value={editingPassword}
+                        onChange={(event) => setEditingPassword(event.target.value)}
+                        placeholder="Leave blank to keep current"
+                      />
+                    </label>
+                    <label>
+                      Role
+                      <select value={editingRole} onChange={(event) => setEditingRole(event.target.value as (typeof roleOptions)[number])}>
+                        {roleOptions.map((role) => (
+                          <option key={role} value={role}>{role}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                ) : (
+                  <>
+                    <strong>{user.username}</strong>
+                    <span className="muted">{user.role} / {user.status}</span>
+                  </>
+                )}
               </div>
               {user.id === currentUserId ? (
                 <span className="muted">Current account</span>
               ) : (
-                <button
-                  type="button"
-                  className={user.status === "ACTIVE" ? "button action-delete" : "button action-view"}
-                  onClick={() => void toggleStatus(user.id, user.status === "ACTIVE" ? "DISABLED" : "ACTIVE")}
-                >
-                  {user.status === "ACTIVE" ? "Disable" : "Enable"}
-                </button>
+                <div className="entry-actions">
+                  {editingUserId === user.id ? (
+                    <>
+                      <button type="button" className="button action-view" onClick={() => void saveEdit(user.id)}>
+                        Save
+                      </button>
+                      <button type="button" className="button" onClick={() => setEditingUserId(null)}>
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" className="button action-edit" onClick={() => startEdit(user)}>
+                      Edit
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={user.status === "ACTIVE" ? "button action-delete" : "button action-view"}
+                    onClick={() => void toggleStatus(user.id, user.status === "ACTIVE" ? "DISABLED" : "ACTIVE")}
+                  >
+                    {user.status === "ACTIVE" ? "Disable" : "Enable"}
+                  </button>
+                </div>
               )}
             </div>
           ))}

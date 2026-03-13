@@ -39,6 +39,12 @@ export const updateUserStatusSchema = z.object({
   status: z.enum(["ACTIVE", "DISABLED"])
 });
 
+export const updateUserCredentialsSchema = z.object({
+  username: z.string().min(3).max(60),
+  password: z.string().min(8, "Password must be 8 characters or longer").max(256).optional(),
+  role: z.enum(["READER", "CONTRIBUTOR", "EDITOR", "APPROVER", "AUDITOR", "ADMIN"])
+});
+
 export const approveEntrySchema = z.object({
   note: z.string().max(500).optional()
 });

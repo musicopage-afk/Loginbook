@@ -1,8 +1,10 @@
 import argon2 from "argon2";
 import { PrismaClient, UserRole } from "@prisma/client";
-import { ACTIVE_LOG_TAG, DEFAULT_LOGBOOK_NAME, DEFAULT_LOGBOOK_TYPE } from "../lib/constants";
 
 const prisma = new PrismaClient();
+const DEFAULT_LOGBOOK_NAME = "Log Book";
+const DEFAULT_LOGBOOK_TYPE = "LOG_BOOK";
+const ACTIVE_LOG_TAG = "active";
 
 async function main() {
   const organization = await prisma.organization.upsert({
