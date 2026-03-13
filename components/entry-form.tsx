@@ -32,7 +32,7 @@ export function EntryForm({
   const router = useRouter();
   const [error, setError] = useState("");
   const [queued, setQueued] = useState(false);
-  const [entryOrExit, setEntryOrExit] = useState<LogDirection>(initialValues?.entryOrExit ?? "ENTRY");
+  const [entryOrExit, setEntryOrExit] = useState<LogDirection | "">(initialValues?.entryOrExit ?? "");
   const [name, setName] = useState(initialValues?.name ?? "");
   const [company, setCompany] = useState(initialValues?.company ?? "");
   const isEditing = Boolean(entryId);
@@ -76,13 +76,20 @@ export function EntryForm({
     setQueued(false);
     const form = new FormData(event.currentTarget);
     const occurredAt = initialValues?.occurredAtIso ?? new Date().toISOString();
+    const selectedDirection = String(form.get("entryOrExit") ?? "");
+
+    if (!selectedDirection) {
+      setError("Select entry or exit");
+      return;
+    }
+
     const payload = {
       title: String(form.get("name") ?? ""),
       body: String(form.get("reason") ?? ""),
       occurredAt,
       tags: [],
       structuredFieldsJson: {
-        entryOrExit: String(form.get("entryOrExit") ?? "ENTRY"),
+        entryOrExit: selectedDirection,
         authorisedBy: String(form.get("authorisedBy") ?? ""),
         company: String(form.get("company") ?? ""),
         timestampGmt: occurredAt
@@ -134,6 +141,7 @@ export function EntryForm({
           name="entryOrExit"
           label="Entry or Exit"
           value={entryOrExit}
+          placeholder="ENTRY OR EXIT"
           onChange={(value) => setEntryOrExit(value as LogDirection)}
           options={[
             { value: "ENTRY", label: "Entry" },

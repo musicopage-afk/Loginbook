@@ -5,6 +5,64 @@ import { listAuditEvents } from "@/lib/services/audit";
 
 export const dynamic = "force-dynamic";
 
+function formatAuditTime(value: Date) {
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC"
+  }).format(value);
+}
+
+function getAuditActor(event: Awaited<ReturnType<typeof listAuditEvents>>[number]) {
+  return event.user ? `(${event.user.role}) User` : "System";
+}
+
+function getAuditPermissionGroup(event: Awaited<ReturnType<typeof listAuditEvents>>[number]) {
+  return event.user?.role ?? "SYSTEM";
+}
+
+function getAuditMessage(event: Awaited<ReturnType<typeof listAuditEvents>>[number]) {
+  const actor = getAuditActor(event);
+
+  if (event.action === "LOGIN") {
+    return `${actor} signed in.`;
+  }
+
+  if (event.action === "LOGOUT") {
+    return `${actor} signed out.`;
+  }
+
+  if (event.action === "CREATE" && event.entityType === "ENTRY") {
+    return `${actor} created a log entry.`;
+  }
+
+  if (event.action === "UPDATE" && event.entityType === "ENTRY") {
+    return `${actor} updated a log entry.`;
+  }
+
+  if (event.action === "DELETE" && event.entityType === "ENTRY") {
+    return `${actor} deleted a log entry.`;
+  }
+
+  if (event.action === "APPROVE" && event.entityType === "ENTRY") {
+    return `${actor} approved a log entry.`;
+  }
+
+  if (event.action === "CREATE" && event.entityType === "USER") {
+    return `${actor} created an account.`;
+  }
+
+  if (event.action === "UPDATE" && event.entityType === "USER") {
+    return `${actor} changed an account.`;
+  }
+
+  if (event.action === "EXPORT") {
+    return `${actor} exported records.`;
+  }
+
+  return `${actor} performed ${event.action.toLowerCase()} on ${event.entityType.toLowerCase()}.`;
+}
+
 export default async function AuditPage({
   searchParams
 }: {
@@ -55,30 +113,19 @@ export default async function AuditPage({
         </section>
       </div>
       <section className="card">
-        <table>
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>User</th>
-              <th>Action</th>
-              <th>Entity</th>
-              <th>IP</th>
-              <th>User agent</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.map((event) => (
-              <tr key={event.id}>
-                <td>{event.occurredAt.toISOString()}</td>
-                <td>{event.user?.displayName ?? "System"}</td>
-                <td>{event.action}</td>
-                <td>{event.entityType}:{event.entityId}</td>
-                <td>{event.ip}</td>
-                <td>{event.userAgent}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="audit-feed">
+          {events.map((event) => (
+            <article key={event.id} className="audit-item">
+              <div className="audit-meta">
+                <span className="timestamp-text">{formatAuditTime(event.occurredAt)}</span>
+                <span className="pill audit-pill">{getAuditActor(event)}</span>
+                <span className="pill audit-pill">{getAuditPermissionGroup(event)}</span>
+              </div>
+              <strong>{getAuditMessage(event)}</strong>
+              <span className="muted">Device: {event.userAgent ?? "Unknown device"}</span>
+            </article>
+          ))}
+        </div>
         {events.length === 0 ? <div className="empty">No audit events match the current filters.</div> : null}
       </section>
     </AppShell>

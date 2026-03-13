@@ -240,7 +240,7 @@ textarea {
 .select-trigger {
   width: 100%;
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 0.75rem;
   border-radius: 18px;
@@ -257,16 +257,23 @@ textarea {
   background: #fff;
 }
 
-.select-label {
-  font: 700 0.82rem var(--font-ui);
+.select-value {
+  min-width: 0;
+  font: 700 0.95rem var(--font-ui);
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.select-value.is-placeholder {
   color: var(--muted);
 }
 
-.select-value {
-  justify-self: end;
-  font: 1rem var(--font-body);
+.select-value.is-selected {
+  font-family: var(--font-timestamp);
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  color: var(--ink);
 }
 
 .select-caret {
@@ -383,6 +390,10 @@ td {
 .account-copy {
   display: grid;
   gap: 0.2rem;
+}
+
+.topbar-button {
+  box-shadow: var(--shadow);
 }
 
 .log-filter-bar {
@@ -535,6 +546,31 @@ td {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
+}
+
+.audit-feed {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.audit-item {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.audit-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.audit-pill {
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .embed {

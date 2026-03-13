@@ -11,19 +11,21 @@ export function AnimatedSelect({
   name,
   label,
   value,
+  placeholder,
   options,
   onChange
 }: {
   name: string;
   label: string;
   value: string;
+  placeholder: string;
   options: Option[];
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
-  const selectedOption = options.find((option) => option.value === value) ?? options[0];
+  const selectedOption = options.find((option) => option.value === value);
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -59,10 +61,9 @@ export function AnimatedSelect({
         id={`${listboxId}-button`}
         onClick={() => setOpen((current) => !current)}
       >
-        <span className="select-label" id={`${listboxId}-label`}>
-          {label}
+        <span className={`select-value ${selectedOption ? "is-selected" : "is-placeholder"}`} id={`${listboxId}-label`}>
+          {selectedOption?.label ?? placeholder}
         </span>
-        <span className="select-value">{selectedOption.label}</span>
         <span className="select-caret" aria-hidden="true">
           ▾
         </span>

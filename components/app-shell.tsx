@@ -19,11 +19,11 @@ export function AppShell({
           <div className="muted">Digital logbook with audit-grade history</div>
         </div>
         <div className="nav">
-          <Link href="/logbooks">Log Book</Link>
-          {user && canViewAudit(user.role) ? <Link href="/audit">Audit</Link> : null}
-          {user && canManageAccounts(user.role) ? <Link href="/accounts">Accounts</Link> : null}
-          {user ? <span className="pill">{user.displayName} / {user.role}</span> : null}
-          {user ? <LogoutButton /> : <Link href="/login">Login</Link>}
+          <Link className="button topbar-button" href="/logbooks">Log Book</Link>
+          {user && canViewAudit(user.role) ? <Link className="button topbar-button" href="/audit">Audit</Link> : null}
+          {user && canManageAccounts(user.role) ? <Link className="button topbar-button" href="/accounts">Accounts</Link> : null}
+          {user ? <span className="pill">({user.role}) User</span> : null}
+          {user ? <LogoutButton /> : <Link className="button topbar-button" href="/login">Login</Link>}
         </div>
       </div>
       <Breadcrumbs />
