@@ -4,7 +4,7 @@ import { z } from "zod";
 import { enforceStateChangingRequest, getRequestMeta, jsonError, jsonOk, requireApiUser } from "@/lib/api";
 import { buildEntryWhere } from "@/lib/queries";
 import { listEntries, createEntry } from "@/lib/services/entries";
-import { createEntrySchema, logbookFilterSchema } from "@/lib/validation";
+import { createEntrySchema, logbookFilterSchema, validateEntryPayloadByDirection } from "@/lib/validation";
 
 function mapTags(input: FormDataEntryValue | null) {
   return String(input ?? "")
@@ -44,21 +44,25 @@ export async function POST(
     const contentType = request.headers.get("content-type") ?? "";
     if (contentType.includes("multipart/form-data")) {
       const form = await request.formData();
-      payload = createEntrySchema.parse({
+      payload = validateEntryPayloadByDirection(
+        createEntrySchema.parse({
         title: form.get("title"),
         body: form.get("body"),
         occurredAt: form.get("occurredAt"),
         tags: mapTags(form.get("tags")),
         structuredFieldsJson: JSON.parse(String(form.get("structuredFieldsJson") ?? "{}")),
         supersedesEntryId: form.get("supersedesEntryId") || undefined
-      });
+        })
+      );
       files = form.getAll("attachments").filter((item): item is File => item instanceof File);
     } else {
       const body = await request.json();
-      payload = createEntrySchema.parse({
-        ...body,
-        tags: Array.isArray(body.tags) ? body.tags : []
-      });
+      payload = validateEntryPayloadByDirection(
+        createEntrySchema.parse({
+          ...body,
+          tags: Array.isArray(body.tags) ? body.tags : []
+        })
+      );
     }
 
     const entry = await createEntry(

@@ -36,6 +36,7 @@ export function EntryForm({
   const [name, setName] = useState(initialValues?.name ?? "");
   const [company, setCompany] = useState(initialValues?.company ?? "");
   const isEditing = Boolean(entryId);
+  const isExit = entryOrExit === "EXIT";
 
   useEffect(() => {
     if (entryOrExit !== "EXIT") {
@@ -49,17 +50,18 @@ export function EntryForm({
 
   async function queueOffline(form: FormData) {
     const occurredAt = initialValues?.occurredAtIso ?? new Date().toISOString();
+    const selectedDirection = String(form.get("entryOrExit") ?? "ENTRY");
     const payload = {
       id: crypto.randomUUID(),
       logbookId,
       title: String(form.get("name") ?? ""),
-      body: String(form.get("reason") ?? ""),
+      body: selectedDirection === "EXIT" ? "" : String(form.get("reason") ?? ""),
       occurredAt,
       tags: [],
       structuredFieldsJson: {
-        entryOrExit: String(form.get("entryOrExit") ?? "ENTRY"),
-        authorisedBy: String(form.get("authorisedBy") ?? ""),
-        company: String(form.get("company") ?? ""),
+        entryOrExit: selectedDirection,
+        authorisedBy: selectedDirection === "EXIT" ? "" : String(form.get("authorisedBy") ?? ""),
+        company: selectedDirection === "EXIT" ? "" : String(form.get("company") ?? ""),
         timestampGmt: occurredAt
       },
       supersedesEntryId
@@ -83,15 +85,32 @@ export function EntryForm({
       return;
     }
 
+    if (selectedDirection !== "EXIT") {
+      if (!String(form.get("reason") ?? "").trim()) {
+        setError("Reason is required");
+        return;
+      }
+
+      if (!String(form.get("authorisedBy") ?? "").trim()) {
+        setError("Authorised by is required");
+        return;
+      }
+
+      if (!String(form.get("company") ?? "").trim()) {
+        setError("Company is required");
+        return;
+      }
+    }
+
     const payload = {
       title: String(form.get("name") ?? ""),
-      body: String(form.get("reason") ?? ""),
+      body: selectedDirection === "EXIT" ? "" : String(form.get("reason") ?? ""),
       occurredAt,
       tags: [],
       structuredFieldsJson: {
         entryOrExit: selectedDirection,
-        authorisedBy: String(form.get("authorisedBy") ?? ""),
-        company: String(form.get("company") ?? ""),
+        authorisedBy: selectedDirection === "EXIT" ? "" : String(form.get("authorisedBy") ?? ""),
+        company: selectedDirection === "EXIT" ? "" : String(form.get("company") ?? ""),
         timestampGmt: occurredAt
       },
       supersedesEntryId
@@ -149,24 +168,28 @@ export function EntryForm({
           ]}
         />
       </label>
-      <label>
-        Reason
-        <textarea className="textarea-medium" name="reason" required defaultValue={initialValues?.reason ?? ""} />
-      </label>
-      <label>
-        Authorised by
-        <input name="authorisedBy" required maxLength={120} defaultValue={initialValues?.authorisedBy ?? ""} />
-      </label>
-      <label>
-        Company
-        <input
-          name="company"
-          required
-          maxLength={120}
-          value={company}
-          onChange={(event) => setCompany(event.target.value)}
-        />
-      </label>
+      {isExit ? null : (
+        <>
+          <label>
+            Reason
+            <textarea className="textarea-medium" name="reason" required defaultValue={initialValues?.reason ?? ""} />
+          </label>
+          <label>
+            Authorised by
+            <input name="authorisedBy" required maxLength={120} defaultValue={initialValues?.authorisedBy ?? ""} />
+          </label>
+          <label>
+            Company
+            <input
+              name="company"
+              required
+              maxLength={120}
+              value={company}
+              onChange={(event) => setCompany(event.target.value)}
+            />
+          </label>
+        </>
+      )}
       {queued ? <div className="muted">Offline: log queued locally and will sync when online.</div> : null}
       {error ? <div className="danger">{error}</div> : null}
       {activeNameSuggestions.length > 0 ? (

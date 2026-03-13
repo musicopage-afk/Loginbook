@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ApiError } from "@/lib/api";
 import { MAX_UPLOAD_BYTES } from "@/lib/constants";
 
 export const loginSchema = z.object({
@@ -22,12 +23,54 @@ export const logbookFilterSchema = z.object({
 
 export const createEntrySchema = z.object({
   title: z.string().min(3).max(200),
-  body: z.string().min(1).max(10000),
+  body: z.string().max(10000),
   occurredAt: z.string().datetime(),
   tags: z.array(z.string().min(1).max(60)).max(20).default([]),
   structuredFieldsJson: z.record(z.any()).default({}),
   supersedesEntryId: z.string().optional()
 });
+
+export function validateEntryPayloadByDirection(input: z.infer<typeof createEntrySchema>) {
+  const direction = input.structuredFieldsJson.entryOrExit === "EXIT" ? "EXIT" : "ENTRY";
+  const authorisedBy =
+    typeof input.structuredFieldsJson.authorisedBy === "string" ? input.structuredFieldsJson.authorisedBy.trim() : "";
+  const company =
+    typeof input.structuredFieldsJson.company === "string" ? input.structuredFieldsJson.company.trim() : "";
+
+  if (direction === "EXIT") {
+    return {
+      ...input,
+      body: "",
+      structuredFieldsJson: {
+        ...input.structuredFieldsJson,
+        authorisedBy: "",
+        company: ""
+      }
+    };
+  }
+
+  if (!input.body.trim()) {
+    throw new ApiError(400, "Reason is required");
+  }
+
+  if (!authorisedBy) {
+    throw new ApiError(400, "Authorised by is required");
+  }
+
+  if (!company) {
+    throw new ApiError(400, "Company is required");
+  }
+
+  return {
+    ...input,
+    body: input.body.trim(),
+    structuredFieldsJson: {
+      ...input.structuredFieldsJson,
+      authorisedBy,
+      company
+    }
+  };
+}
 
 export const createUserSchema = z.object({
   username: z.string().min(3).max(60),

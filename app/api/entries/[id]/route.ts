@@ -2,7 +2,7 @@ import { UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { ApiError, enforceStateChangingRequest, getRequestMeta, jsonError, jsonOk, requireApiUser } from "@/lib/api";
 import { getEntry, updateEntry, deleteEntry } from "@/lib/services/entries";
-import { createEntrySchema } from "@/lib/validation";
+import { createEntrySchema, validateEntryPayloadByDirection } from "@/lib/validation";
 
 export async function GET(
   _request: NextRequest,
@@ -29,7 +29,7 @@ export async function PATCH(
     const user = await requireApiUser(UserRole.EDITOR);
     await enforceStateChangingRequest(request);
     const { id } = await params;
-    const body = createEntrySchema.parse(await request.json());
+    const body = validateEntryPayloadByDirection(createEntrySchema.parse(await request.json()));
     const meta = getRequestMeta(request);
     const entry = await updateEntry(
       {
