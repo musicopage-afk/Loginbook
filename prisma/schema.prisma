@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  READER
+  CONTRIBUTOR
+  EDITOR
+  APPROVER
+  AUDITOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum EntryStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  SUPERSEDED
+  DELETED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  APPROVE
+  LOGIN
+  LOGOUT
+  EXPORT
+  UPLOAD
+  SUPERSEDE
+}
+
+enum EntityType {
+  ORGANIZATION
+  USER
+  SESSION
+  LOGBOOK
+  ENTRY
+  TAG
+  ATTACHMENT
+  AUDIT_EVENT
+}
+
+model Organization {
+  id          String      @id @default(cuid())
+  name        String
+  createdAt   DateTime    @default(now()) @map("created_at")
+  users       User[]
+  logbooks    Logbook[]
+  tags        Tag[]
+  auditEvents AuditEvent[]
+
+  @@map("organizations")
+}
+
+model User {
+  id              String       @id @default(cuid())
+  organizationId  String       @map("organization_id")
+  email           String
+  displayName     String       @map("display_name")
+  passwordHash    String       @map("password_hash")
+  role            UserRole
+  status          UserStatus   @default(ACTIVE)
+  createdAt       DateTime     @default(now()) @map("created_at")
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  sessions        Session[]
+  createdEntries  Entry[]      @relation("EntryCreatedBy")
+  approvedEntries Entry[]      @relation("EntryApprovedBy")
+  auditEvents     AuditEvent[]
+
+  @@unique([organizationId, email])
+  @@map("users")
+}
+
+model Session {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  tokenHash  String    @map("token_hash")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Logbook {
+  id             String    @id @default(cuid())
+  organizationId String    @map("organization_id")
+  name           String
+  type           String
+  isArchived     Boolean   @default(false) @map("is_archived")
+  deletedAt      DateTime? @map("deleted_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  entries        Entry[]
+
+  @@unique([organizationId, name])
+  @@map("logbooks")
+}
+
+model Entry {
+  id                   String      @id @default(cuid())
+  logbookId            String      @map("logbook_id")
+  createdByUserId      String      @map("created_by_user_id")
+  title                String
+  body                 String
+  structuredFieldsJson Json        @default("{}") @map("structured_fields_json")
+  status               EntryStatus @default(DRAFT)
+  occurredAt           DateTime    @map("occurred_at")
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @updatedAt @map("updated_at")
+  approvedAt           DateTime?   @map("approved_at")
+  approvedByUserId     String?     @map("approved_by_user_id")
+  supersedesEntryId    String?     @map("supersedes_entry_id")
+  deletedAt            DateTime?   @map("deleted_at")
+  logbook              Logbook     @relation(fields: [logbookId], references: [id], onDelete: Restrict)
+  createdByUser        User        @relation("EntryCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  approvedByUser       User?       @relation("EntryApprovedBy", fields: [approvedByUserId], references: [id], onDelete: Restrict)
+  supersedesEntry      Entry?      @relation("EntrySupersedes", fields: [supersedesEntryId], references: [id], onDelete: Restrict)
+  supersededByEntries  Entry[]     @relation("EntrySupersedes")
+  tags                 EntryTag[]
+  attachments          Attachment[]
+
+  @@index([logbookId, occurredAt])
+  @@index([createdByUserId])
+  @@map("entries")
+}
+
+model Tag {
+  id             String       @id @default(cuid())
+  organizationId String       @map("organization_id")
+  name           String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  entries        EntryTag[]
+
+  @@unique([organizationId, name])
+  @@map("tags")
+}
+
+model EntryTag {
+  entryId String @map("entry_id")
+  tagId   String @map("tag_id")
+  entry   Entry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Restrict)
+
+  @@id([entryId, tagId])
+  @@map("entry_tags")
+}
+
+model Attachment {
+  id          String   @id @default(cuid())
+  entryId     String   @map("entry_id")
+  filename    String
+  contentType String   @map("content_type")
+  byteSize    Int      @map("byte_size")
+  sha256      String
+  storageUri  String   @map("storage_uri")
+  uploadedAt  DateTime @default(now()) @map("uploaded_at")
+  entry       Entry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([entryId])
+  @@map("attachments")
+}
+
+model AuditEvent {
+  id             String       @id @default(cuid())
+  organizationId String       @map("organization_id")
+  userId         String?      @map("user_id")
+  action         AuditAction
+  entityType     EntityType   @map("entity_type")
+  entityId       String       @map("entity_id")
+  beforeJson     Json?        @map("before_json")
+  afterJson      Json?        @map("after_json")
+  ip             String?
+  userAgent      String?      @map("user_agent")
+  occurredAt     DateTime     @default(now()) @map("occurred_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, occurredAt])
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@map("audit_events")
+}
